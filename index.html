@@ -12,10 +12,11 @@
             --text: #e0e0e0;
             --wave-color: #00bcd4;
             --ruler-height: 24px;
-            --control-width: 150px; 
+            --control-width: 170px; 
             --mute-color: #d32f2f;
             --off-color: #555;
             --status-color: #ffeb3b;
+            --track-height: 110px;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -36,7 +37,7 @@
         button, .file-upload-label, .input-label {
             background: #444; border: 1px solid #666; color: white; padding: 6px 10px;
             cursor: pointer; border-radius: 4px; font-size: 0.8rem; flex-shrink: 0; user-select: none;
-            display: flex; align-items: center; gap: 5px; height: 32px; box-sizing: border-box;
+            display: flex; align-items: center; justify-content: center; gap: 5px; height: 32px; box-sizing: border-box;
         }
         select.input-label { cursor: pointer; max-width: 130px; text-overflow: ellipsis; padding:0 5px;}
         button:hover { background: #555; }
@@ -44,6 +45,15 @@
         button.primary { background: var(--accent); border-color: var(--accent); }
         button.active { background: var(--accent); border-color: #45a049; }
         
+        /* Batch Tools Area */
+        .batch-tools {
+            display: flex; align-items: center; gap: 4px; background: #222; 
+            padding: 4px 8px; border-radius: 6px; border: 1px solid #555;
+        }
+        .batch-label { font-size: 0.65rem; color: #aaa; margin-right: 5px; text-transform: uppercase; letter-spacing: 1px; min-width: 80px; }
+
+        .toolbar-divider { width: 1px; height: 30px; background-color: #666; margin: 0 5px; }
+
         .rec-active { background-color: #d32f2f !important; border-color: #b71c1c !important; color: white !important; animation: pulse-rec 1s infinite; }
         @keyframes pulse-rec { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
@@ -53,6 +63,7 @@
             background: #222; border: 1px solid #555; color: var(--accent); 
             width: 45px; padding: 4px; border-radius: 3px; font-weight: bold; text-align: center;
         }
+        .zoom-input { color: #fff; width: 45px; }
 
         #statusText {
             font-size: 0.8rem; font-weight: bold; color: #aaa; margin: 0 5px;
@@ -67,9 +78,9 @@
             font-weight: bold; display:flex; align-items:center; justify-content:center; min-width: 90px;
         }
         
-        .meter-container { display: flex; flex-direction: column; gap: 2px; align-items: center; background: #222; padding: 3px; border-radius: 4px; border: 1px solid #444; }
-        .vu-meter { width: 100px; height: 10px; background: #111; display: block; border-radius: 2px; }
-        .meter-label { font-size: 0.6rem; color: #aaa; line-height: 1; }
+        .meter-container { display: flex; flex-direction: column; gap: 2px; align-items: center; background: #222; padding: 3px; border-radius: 4px; border: 1px solid #444; width: 100%; box-sizing: border-box;}
+        .vu-meter { width: 100%; height: 10px; background: #111; display: block; border-radius: 2px; }
+        .meter-label { font-size: 0.6rem; color: #aaa; line-height: 1; margin-bottom: -2px; }
 
         /* Timeline */
         #timeline-container {
@@ -81,22 +92,41 @@
         #playhead { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; background: #ff3333; box-shadow: 0 0 4px rgba(255,0,0,0.5); }
         #playhead::after { content: ''; position: absolute; top: 0; left: -6px; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 10px solid #ff3333; }
 
-        /* Tracks */
+        /* Tracks & Groups */
         #tracks-area { position: relative; min-width: 100%; padding-top: 5px; background-color: var(--track-bg); }
-        .track { height: 110px; border-bottom: 1px solid #000; position: relative; display: flex; align-items: center; background: transparent; }
+        
+        .group-container { border: 1px solid #111; margin-bottom: 5px; background: #252525; }
+        .group-header { background: #1a1a1a !important; border-bottom: 2px solid #000; }
+        .group-tracks-area { padding-left: 20px; border-left: 2px solid var(--accent); background: #2a2a2a; }
+
+        .track { height: var(--track-height); border-bottom: 1px solid #000; position: relative; display: flex; align-items: center; background: transparent; transition: opacity 0.2s; }
         .track-controls {
             width: var(--control-width); height: 100%; background: #3a3a3a; padding: 5px;
             box-sizing: border-box; display: flex; flex-direction: column; gap: 4px;
-            z-index: 90; position: sticky; left: 0; border-right: 2px solid #111; flex-shrink: 0; box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+            z-index: 90; position: sticky; left: 0; border-right: 2px solid #111; flex-shrink: 0; box-shadow: 2px 0 5px rgba(0,0,0,0.5); justify-content: flex-start;
         }
-        .track-name { font-size: 0.65rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
-        .track-btn { font-size: 0.7rem; padding: 4px; cursor: pointer; justify-content:center; }
+        
+        .track-name-input { 
+            width: 100%; background: #111; border: 1px solid #555; color: white; 
+            padding: 4px; border-radius: 3px; font-size: 0.75rem; font-weight: bold; box-sizing: border-box;
+            text-align: center;
+        }
+        .group-name-input { color: var(--accent); border-color: var(--accent); }
+        
+        .control-row { display: flex; gap: 4px; align-items: center; margin-top: auto; width: 100%; }
+        .track-select-cb { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; margin: 0; }
+        
+        .track-btn { font-size: 0.7rem; padding: 4px; cursor: pointer; flex: 1; height: 26px; }
         .mute-btn.active { background-color: var(--mute-color) !important; border-color: #b71c1c; }
-        .remove-btn { background: #d32f2f; margin-top: auto; }
+
+        /* Muted styles */
+        .track.muted { opacity: 0.7; }
+        .track.muted .audio-clip { background: rgba(80, 80, 80, 0.2) !important; border-color: #666 !important; }
+        .track.muted .audio-clip canvas { filter: grayscale(100%) opacity(0.4); }
 
         .waveform-lane { position: relative; flex-grow: 1; height: 100%; overflow: hidden; }
         .audio-clip {
-            position: absolute; height: 90px; top: 10px; background: rgba(0, 188, 212, 0.15);
+            position: absolute; height: calc(var(--track-height) - 20px); top: 10px; background: rgba(0, 188, 212, 0.15);
             border: 1px solid var(--wave-color); border-radius: 4px; cursor: grab; overflow: hidden; touch-action: none;
         }
         .audio-clip:active { cursor: grabbing; background: rgba(0, 188, 212, 0.25); }
@@ -106,8 +136,12 @@
         .trim-handle::before { content: ''; position: absolute; top: 0; bottom: 0; width: 4px; background: rgba(255,255,255,0.4); }
         .trim-start { left: -10px; } .trim-start::before { left: 10px; }
         .trim-end { right: -10px; } .trim-end::before { right: 10px; }
+        
         .trim-mask-left, .trim-mask-right { position: absolute; top: 0; bottom: 0; background: rgba(0,0,0,0.6); pointer-events: none; z-index: 5; }
         .trim-mask-left { left: 0; } .trim-mask-right { right: 0; }
+
+        .fade-in-overlay { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: linear-gradient(to right, rgba(30,30,30,0.85), transparent); pointer-events: none; z-index: 6; }
+        .fade-out-overlay { position: absolute; top: 0; bottom: 0; right: 0; width: 0; background: linear-gradient(to left, rgba(30,30,30,0.85), transparent); pointer-events: none; z-index: 6; }
 
         /* Modals */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
@@ -118,8 +152,6 @@
         .modal-scroll-track { width: 35px; background: #222; border-radius: 4px; display: flex; justify-content: center; padding: 5px 0; flex-shrink: 0; }
         #modalScrollSlider, #fxScrollSlider { writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 100%; height: 100%; cursor: ns-resize; }
 
-        .track-info-box { background: #222; border: 1px solid #444; padding: 8px; border-radius: 5px; font-size: 0.8rem; color: #aaa; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; flex-shrink: 0; }
-        
         .settings-row { display: flex; gap: 10px; background: #222; padding: 10px; border-radius: 5px; align-items: center; flex-wrap: wrap; flex-shrink: 0; border: 1px solid #333; }
         .control-group { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 65px; }
         .control-group label { font-size: 0.7rem; color: #aaa; text-align:center; }
@@ -140,36 +172,57 @@
 <body>
 
     <div class="toolbar">
+        <button onclick="undo()" id="btnUndo">Undo</button>
+        <button onclick="redo()" id="btnRedo">Redo</button>
+        <div class="toolbar-divider"></div>
+
         <label class="file-upload-label">+ Raita<input type="file" id="fileInput" multiple accept="audio/*"></label>
+        <button onclick="createGroup()" class="primary">+ Ryhmä</button>
         
-        <div class="meter-container">
-            <span class="meter-label">Mic</span>
-            <canvas id="micMeter" class="vu-meter"></canvas>
+        <div class="toolbar-divider"></div>
+
+        <!-- Batch Operations Area -->
+        <div class="batch-tools">
+            <span class="batch-label" id="selectionCountLabel">Valitut: 0 kpl</span>
+            <button onclick="toggleSelectAll()">Kaikki / Ei mitään</button>
+            <select id="batchGroupSelect" class="input-label" onchange="batchAssignGroup(this.value); this.value='';">
+                <option value="">-- Siirrä ryhmään --</option>
+                <option value="ROOT">Poista ryhmästä (Juuri)</option>
+            </select>
+            <button onclick="batchMoveUp()">↑ Ylös</button>
+            <button onclick="batchMoveDown()">↓ Alas</button>
+            <button onclick="batchMuteToggle()">Mute / Unmute</button>
+            <button onclick="batchDelete()" style="background:#b71c1c; border-color:#d32f2f;" title="Voit painaa myös Delete">Poista</button>
         </div>
-        <select id="micSelect" class="input-label"><option value="">Oletusmikrofoni</option></select>
-        <button id="recBtn" onclick="toggleRecord()">Rec (R)</button>
+
+        <div class="toolbar-divider"></div>
 
         <button onclick="togglePlay()" id="playBtn">Toista (Space)</button>
         <button onclick="stop(false)">Stop</button>
         <button onclick="toBeginning()">|&lt; (W)</button>
         <div class="time-display-container" id="timeDisplay">00:00:00</div>
+        <button id="recBtn" onclick="toggleRecord()">Rec (R)</button>
         
+        <div class="toolbar-divider"></div>
+
         <label class="input-label">BPM: <input type="number" id="bpmInput" class="bpm-input" value="120" min="30" max="300" onchange="updateGrid()"></label>
         <button id="snapBtn" onclick="toggleSnap()">Snap: OFF</button>
         <button id="metroBtn" onclick="toggleMetronome()">Metro (M)</button>
 
+        <label class="input-label">X: <input type="number" id="zoomXInput" class="bpm-input zoom-input" value="50" min="10" max="300" onchange="changeZoomX(this.value)"></label>
+        <label class="input-label">Y: <input type="number" id="zoomYInput" class="bpm-input zoom-input" value="110" min="50" max="300" onchange="changeZoomY(this.value)"></label>
+
+        <div class="toolbar-divider"></div>
+
         <button onclick="openMasterFX()">Master FX</button>
         <button onclick="openExportModal()" class="primary">Export WAV</button>
-
-        <button onclick="saveProject()">Save (JSON)</button>
+        <button onclick="saveProject()">Save</button>
         <label class="file-upload-label">Load<input type="file" id="loadInput" multiple accept=".json, audio/*"></label>
         
-        <span id="statusText">Valmis</span>
-
-        <div class="meter-container" style="margin-left:auto;">
+        <div class="meter-container" style="width:100px; margin-left:auto;">
             <span class="meter-label">Master L/R</span>
-            <canvas id="masterMeterL" class="vu-meter"></canvas>
-            <canvas id="masterMeterR" class="vu-meter" style="margin-top:1px;"></canvas>
+            <canvas id="masterMeterL" class="vu-meter" style="height:6px;"></canvas>
+            <canvas id="masterMeterR" class="vu-meter" style="height:6px; margin-top:1px;"></canvas>
         </div>
     </div>
 
@@ -179,22 +232,19 @@
         <div id="tracks-area" style="min-width: 2000px;"></div>
     </div>
 
-    <!-- Dynamic Modal System -->
+    <!-- Modals -->
     <div id="eqModal" class="modal">
         <div class="modal-wrapper">
             <div class="modal-content" id="trackFxContent"></div>
             <div class="modal-scroll-track"><input type="range" id="modalScrollSlider" min="0" max="100" value="0" step="1"></div>
         </div>
     </div>
-
     <div id="fxModal" class="modal">
         <div class="modal-wrapper">
             <div class="modal-content" id="masterFxContent"></div>
             <div class="modal-scroll-track"><input type="range" id="fxScrollSlider" min="0" max="100" value="0" step="1"></div>
         </div>
     </div>
-
-    <!-- Export Modal -->
     <div id="exportModal" class="modal">
         <div class="modal-wrapper modal-small">
             <h3 style="margin:0 0 20px 0; color:white;">Vie projekti (Export)</h3>
@@ -207,9 +257,16 @@
         </div>
     </div>
 
+    <!-- Hidden elements -->
+    <div style="display:none;">
+        <select id="micSelect"><option value="">Oletusmikrofoni</option></select>
+        <canvas id="micMeter" class="vu-meter"></canvas>
+        <span id="statusText">Valmis</span>
+    </div>
+
     <script>
-        const PIXELS_PER_SECOND = 50;
-        const CONTROL_WIDTH = 150; 
+        let PIXELS_PER_SECOND = 50;
+        const CONTROL_WIDTH = 170; 
         const EQ_FREQS = [30, 60, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000, 22000];
         
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -220,21 +277,33 @@
         let isRecording = false;
         let bpm = 120;
         let nextMetroTime = 0; let currentBeat = 0;
-        let mediaRecorder = null; let recordedChunks = []; let recordStartTime = 0; let micPermissionGranted = false;
-        let tracks = []; let isPlaying = false; let currentPlayTime = 0; let playStartTime = 0; let playStartOffset = 0; let animationId;
-        let currentEditingTrackId = null;
+        let mediaRecorder = null; let recordedChunks = []; let recordStartTime = 0;
+        
+        // Master memory pools for Undo/Redo without reloading buffers
+        const masterTrackPool = new Map();
+        const masterGroupPool = new Map();
 
+        // Active timeline arrays
+        let tracks = []; 
+        let groups = [];
+        
+        // State Machine (Undo/Redo)
+        let undoStack = [];
+        let redoStack = [];
+        let isRestoringState = false;
+
+        let isPlaying = false; let currentPlayTime = 0; let playStartTime = 0; let playStartOffset = 0; let animationId;
+        
         const timelineContainer = document.getElementById('timeline-container');
         const rulerCanvas = document.getElementById('rulerCanvas');
         const playheadContainer = document.getElementById('playhead-container');
         const timeDisplay = document.getElementById('timeDisplay');
+        const masterArea = document.getElementById('tracks-area');
 
-        // Analysers
         const masterAnalyser = audioCtx.createAnalyser(); masterAnalyser.fftSize = 1024;
         const micAnalyser = audioCtx.createAnalyser(); micAnalyser.fftSize = 1024;
         let micStreamSource = null;
 
-        // Default FX State Generator
         const createDefaultFX = () => ({
             vol: 1.0, pan: 0.0,
             lpf: { on: false, freq: 20000, q: 1 },
@@ -248,44 +317,30 @@
         });
 
         let masterFX = createDefaultFX();
+        let busGain;
 
-        // Master Graph Nodes
-        let busGain, masterVolNode;
-        let masterFxNodes = {};
+        function updateSelectionCount() {
+            const count = tracks.filter(t => t.isSelected).length + groups.filter(g => g.isSelected).length;
+            const label = document.getElementById('selectionCountLabel');
+            if(label) label.innerText = `Valitut: ${count} kpl`;
+        }
 
-        // Synthetic IR generator for Reverb
         function generateImpulseResponse(ctx, decay) {
-            const length = ctx.sampleRate * decay;
-            const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+            const length = ctx.sampleRate * decay; const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
             const left = impulse.getChannelData(0); const right = impulse.getChannelData(1);
-            for (let i = 0; i < length; i++) {
-                const n = length - i;
-                left[i] = (Math.random() * 2 - 1) * Math.pow(n / length, 5);
-                right[i] = (Math.random() * 2 - 1) * Math.pow(n / length, 5);
-            }
+            for (let i = 0; i < length; i++) { const n = length - i; left[i] = (Math.random() * 2 - 1) * Math.pow(n / length, 5); right[i] = (Math.random() * 2 - 1) * Math.pow(n / length, 5); }
             return impulse;
         }
 
-        function setStatus(msg, isBusy = false) {
-            const el = document.getElementById('statusText');
-            el.innerText = msg;
-            if (isBusy) el.classList.add('busy'); else el.classList.remove('busy');
-        }
-
-        // Complex routing builder for Track and Master (works in live and offline context)
         function buildFXChain(ctx, inputNode, outputNode, fxState, liveAnalysers = null) {
             let current = inputNode;
-            let chain = {};
 
-            // 1. LPF
             const lpf = ctx.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = fxState.lpf.freq; lpf.Q.value = fxState.lpf.q;
             if (fxState.lpf.on) { current.connect(lpf); current = lpf; }
 
-            // 2. HPF
             const hpf = ctx.createBiquadFilter(); hpf.type = 'highpass'; hpf.frequency.value = fxState.hpf.freq; hpf.Q.value = fxState.hpf.q;
             if (fxState.hpf.on) { current.connect(hpf); current = hpf; }
 
-            // 3. Reverb
             const revIn = ctx.createGain(); const revDry = ctx.createGain(); const revWet = ctx.createGain();
             const convolver = ctx.createConvolver(); convolver.buffer = generateImpulseResponse(ctx, fxState.reverb.decay);
             current.connect(revIn); revIn.connect(revDry); revIn.connect(convolver); convolver.connect(revWet);
@@ -293,7 +348,6 @@
             if (fxState.reverb.on) { revDry.gain.value = 1 - fxState.reverb.mix; revWet.gain.value = fxState.reverb.mix; } else { revDry.gain.value = 1; revWet.gain.value = 0; }
             current = revOut;
 
-            // 4. Chorus
             const chIn = ctx.createGain(); const chDry = ctx.createGain(); const chWet = ctx.createGain();
             const chDelay = ctx.createDelay(); chDelay.delayTime.value = 0.03;
             const chLfo = ctx.createOscillator(); chLfo.frequency.value = fxState.chorus.rate;
@@ -304,7 +358,6 @@
             if (fxState.chorus.on) { chDry.gain.value = 1 - fxState.chorus.mix; chWet.gain.value = fxState.chorus.mix; } else { chDry.gain.value = 1; chWet.gain.value = 0; }
             current = chOut;
 
-            // 5. Flanger
             const flIn = ctx.createGain(); const flDry = ctx.createGain(); const flWet = ctx.createGain();
             const flDelay = ctx.createDelay(); flDelay.delayTime.value = 0.005;
             const flFdbk = ctx.createGain(); flFdbk.gain.value = fxState.flanger.feedback;
@@ -316,7 +369,6 @@
             if (fxState.flanger.on) { flDry.gain.value = 1 - fxState.flanger.mix; flWet.gain.value = fxState.flanger.mix; } else { flDry.gain.value = 1; flWet.gain.value = 0; }
             current = flOut;
 
-            // 6. Delay
             const delIn = ctx.createGain(); const delDry = ctx.createGain(); const delWet = ctx.createGain();
             const delNode = ctx.createDelay(3.0); delNode.delayTime.value = fxState.delay.time;
             const delFdbk = ctx.createGain(); delFdbk.gain.value = fxState.delay.feedback;
@@ -325,95 +377,282 @@
             if (fxState.delay.on) { delDry.gain.value = 1 - fxState.delay.mix; delWet.gain.value = fxState.delay.mix; } else { delDry.gain.value = 1; delWet.gain.value = 0; }
             current = delOut;
 
-            // 7. EQ (16 Band)
             let eqPrev = current;
-            EQ_FREQS.forEach((f, i) => {
-                const filt = ctx.createBiquadFilter(); filt.type = 'peaking'; filt.frequency.value = f; filt.Q.value = 1.5;
-                filt.gain.value = fxState.eq.on ? fxState.eq.values[i] : 0;
-                eqPrev.connect(filt); eqPrev = filt;
-            });
+            EQ_FREQS.forEach((f, i) => { const filt = ctx.createBiquadFilter(); filt.type = 'peaking'; filt.frequency.value = f; filt.Q.value = 1.5; filt.gain.value = fxState.eq.on ? fxState.eq.values[i] : 0; eqPrev.connect(filt); eqPrev = filt; });
             current = eqPrev;
 
-            // 8. Limiter
             const limiter = ctx.createDynamicsCompressor(); limiter.knee.value = 0; limiter.attack.value = 0.003; limiter.release.value = 0.25;
             if (fxState.limiter.on) { limiter.threshold.value = fxState.limiter.threshold; limiter.ratio.value = 20; } else { limiter.ratio.value = 1; }
             current.connect(limiter); current = limiter;
 
-            // 9. Final Pan & Volume
             const panner = ctx.createStereoPanner(); panner.pan.value = fxState.pan;
             const outGain = ctx.createGain(); outGain.gain.value = fxState.vol;
             current.connect(panner); panner.connect(outGain);
 
-            // Connect to analysers if live
-            if (liveAnalysers) {
-                outGain.connect(liveAnalysers.node);
-                liveAnalysers.node.connect(outputNode);
-            } else {
-                outGain.connect(outputNode);
-            }
-
-            // Return references for live updating (vol, pan)
+            if (liveAnalysers) { outGain.connect(liveAnalysers.node); liveAnalysers.node.connect(outputNode); } else { outGain.connect(outputNode); }
             return { outGain, panner };
         }
 
         function rebuildMasterGraph() {
             if (busGain) busGain.disconnect();
             busGain = audioCtx.createGain();
-            masterFxNodes = buildFXChain(audioCtx, busGain, audioCtx.destination, masterFX, {node: masterAnalyser});
+            buildFXChain(audioCtx, busGain, audioCtx.destination, masterFX, {node: masterAnalyser});
         }
-        rebuildMasterGraph(); // Init
+        rebuildMasterGraph();
 
-        // --- TRACK CLASS ---
-        class Track {
-            constructor(id, file, buffer, info) {
-                this.id = id; this.file = file; this.buffer = buffer;
-                this.bitDepth = info.depth; this.sampleRate = typeof info.rate==='number'? info.rate+" Hz" : info.rate;
-                this.peakDB = calculatePeakDB(buffer);
+        // --- STATE MACHINE (UNDO/REDO) ---
+        function createSnapshot() {
+            return {
+                bpm, PIXELS_PER_SECOND, masterFX: JSON.parse(JSON.stringify(masterFX)),
+                groups: groups.map(g => ({
+                    id: g.id, name: g.name, isMuted: g.isMuted, isCollapsed: g.isCollapsed, isSelected: g.isSelected,
+                    fx: JSON.parse(JSON.stringify(g.fx))
+                })),
+                tracks: tracks.map(t => ({
+                    id: t.id, name: t.name, groupId: t.groupId, isMuted: t.isMuted, isSelected: t.isSelected,
+                    startTimeOffset: t.startTimeOffset, trimStart: t.trimStart, trimEnd: t.trimEnd, 
+                    fadeIn: t.fadeIn, fadeOut: t.fadeOut, fx: JSON.parse(JSON.stringify(t.fx))
+                }))
+            };
+        }
+        function saveState() {
+            if(isRestoringState) return;
+            undoStack.push(createSnapshot());
+            if(undoStack.length > 50) undoStack.shift(); 
+            redoStack = [];
+            updateUndoRedoButtons();
+        }
+        function restoreState(snap) {
+            isRestoringState = true;
+            stop();
+            
+            bpm = snap.bpm; document.getElementById('bpmInput').value = bpm; updateGrid();
+            PIXELS_PER_SECOND = snap.PIXELS_PER_SECOND; document.getElementById('zoomXInput').value = PIXELS_PER_SECOND;
+            masterFX = snap.masterFX; rebuildMasterGraph();
+
+            tracks.forEach(t => { if(t.DOM) t.DOM.remove(); }); tracks = [];
+            groups.forEach(g => { if(g.DOM) g.DOM.remove(); }); groups = [];
+
+            snap.groups.forEach(gData => {
+                let g = masterGroupPool.get(gData.id);
+                if(!g) { g = new TrackGroup(gData.id, gData.name); masterGroupPool.set(g.id, g); }
                 
+                g.name = gData.name; g.fx = gData.fx; g.isMuted = gData.isMuted; 
+                g.isSelected = gData.isSelected; g.isCollapsed = gData.isCollapsed;
+                
+                masterArea.appendChild(g.DOM);
+                g.DOM.querySelector(`#name-input-${g.id}`).value = g.name;
+                g.DOM.querySelector(`#cb-${g.id}`).checked = g.isSelected;
+                
+                groups.push(g);
+                g.updateVisuals();
+            });
+
+            snap.tracks.forEach(tData => {
+                let t = masterTrackPool.get(tData.id);
+                if(!t) return;
+                
+                t.name = tData.name; t.fx = tData.fx; t.isMuted = tData.isMuted; t.isSelected = tData.isSelected;
+                t.startTimeOffset = tData.startTimeOffset; t.trimStart = tData.trimStart; t.trimEnd = tData.trimEnd;
+                t.fadeIn = tData.fadeIn; t.fadeOut = tData.fadeOut; t.groupId = tData.groupId;
+                
+                if (t.groupId) {
+                    const gDom = document.getElementById(`group-tracks-${t.groupId}`);
+                    if(gDom) gDom.appendChild(t.DOM); else masterArea.appendChild(t.DOM);
+                } else { masterArea.appendChild(t.DOM); }
+                
+                t.DOM.querySelector(`#name-input-${t.id}`).value = t.name;
+                t.DOM.querySelector(`#cb-${t.id}`).checked = t.isSelected;
+                
+                tracks.push(t);
+                t.updateUIPlacements();
+                t.updateVisuals();
+            });
+
+            updateBatchGroupSelect();
+            syncTracksArrayOrder();
+            refreshTimeline();
+            updateUndoRedoButtons();
+            updateSelectionCount();
+            isRestoringState = false;
+        }
+
+        function undo() {
+            if(undoStack.length === 0) return;
+            redoStack.push(createSnapshot());
+            const snap = undoStack.pop();
+            restoreState(snap);
+        }
+        function redo() {
+            if(redoStack.length === 0) return;
+            undoStack.push(createSnapshot());
+            const snap = redoStack.pop();
+            restoreState(snap);
+        }
+        function updateUndoRedoButtons() {
+            document.getElementById('btnUndo').style.opacity = undoStack.length > 0 ? '1' : '0.5';
+            document.getElementById('btnRedo').style.opacity = redoStack.length > 0 ? '1' : '0.5';
+        }
+
+        // --- TRACK GROUP CLASS ---
+        class TrackGroup {
+            constructor(id, name) {
+                this.id = id; this.name = name;
                 this.fx = createDefaultFX();
-                this.fadeIn = 0.0; this.fadeOut = 0.0; this.isMuted = false;
-                this.startTimeOffset = 0; this.trimStart = 0; this.trimEnd = buffer.duration;
-                
-                this.liveNodes = null; 
-                this.analyser = audioCtx.createAnalyser(); this.analyser.fftSize = 1024;
-                this.source = null;
-                
+                this.isMuted = false; this.isCollapsed = false; this.isSelected = false;
+                this.liveNodes = null; this.analyser = audioCtx.createAnalyser(); this.analyser.fftSize = 1024;
                 this.createUI();
             }
             createUI() {
-                const div = document.createElement('div'); div.className = 'track'; div.id = `track-${this.id}`;
-                div.innerHTML = `
+                this.DOM = document.createElement('div');
+                this.DOM.className = 'group-container';
+                this.DOM.id = `group-container-${this.id}`;
+
+                this.header = document.createElement('div');
+                this.header.className = 'track group-header';
+                this.header.id = `group-header-${this.id}`;
+                
+                const safeName = this.name.replace(/"/g, '&quot;');
+                this.header.innerHTML = `
                     <div class="track-controls">
-                        <div class="track-name">${this.file.name}</div>
+                        <input type="text" id="name-input-${this.id}" class="track-name-input group-name-input" value="${safeName}">
                         <div class="meter-container"><canvas id="meter-${this.id}" class="vu-meter"></canvas></div>
-                        <button onclick="openEQ('${this.id}')" class="track-btn">FX / Mix</button>
-                        <button id="mute-${this.id}" class="track-btn mute-btn">Mute</button>
-                        <button onclick="removeTrack('${this.id}')" class="track-btn remove-btn">Poista</button>
+                        <div class="control-row">
+                            <input type="checkbox" id="cb-${this.id}" class="track-select-cb">
+                            <button id="mute-${this.id}" class="track-btn mute-btn">M</button>
+                            <button onclick="openEQ('${this.id}', true)" class="track-btn">FX</button>
+                            <button id="collapse-btn-${this.id}" class="track-btn primary">[-]</button>
+                        </div>
+                    </div>
+                `;
+
+                this.lane = document.createElement('div'); this.lane.className = 'waveform-lane';
+                this.canvas = document.createElement('canvas'); this.canvas.style.display = 'none';
+                this.lane.appendChild(this.canvas); this.header.appendChild(this.lane);
+
+                this.tracksArea = document.createElement('div');
+                this.tracksArea.className = 'group-tracks-area';
+                this.tracksArea.id = `group-tracks-${this.id}`;
+
+                this.DOM.append(this.header, this.tracksArea);
+                
+                const nameInput = this.DOM.querySelector(`#name-input-${this.id}`);
+                nameInput.onchange = (e) => { this.name = e.target.value; saveState(); };
+                
+                const cb = this.DOM.querySelector(`#cb-${this.id}`);
+                cb.onchange = (e) => { this.isSelected = e.target.checked; updateSelectionCount(); };
+                
+                this.muteBtn = this.DOM.querySelector(`#mute-${this.id}`);
+                this.muteBtn.onclick = () => { this.isMuted = !this.isMuted; updateMuteVisuals(); saveState(); };
+                
+                this.DOM.querySelector(`#collapse-btn-${this.id}`).onclick = () => {
+                    this.isCollapsed = !this.isCollapsed; this.updateVisuals(); saveState();
+                };
+            }
+            updateVisuals() {
+                this.tracksArea.style.display = this.isCollapsed ? 'none' : 'block';
+                document.getElementById(`collapse-btn-${this.id}`).innerText = this.isCollapsed ? '[+]' : '[-]';
+                this.canvas.style.display = this.isCollapsed ? 'block' : 'none';
+                this.muteBtn.className = 'track-btn mute-btn ' + (this.isMuted ? 'active' : '');
+                if(this.isCollapsed) this.drawCombinedWaveform();
+            }
+            drawCombinedWaveform() {
+                if(!this.isCollapsed) return;
+                const dur = Math.max(getProjectDuration(), 10);
+                this.canvas.width = Math.min(dur * PIXELS_PER_SECOND, 30000);
+                const h = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--track-height')) || 110;
+                this.canvas.height = h - 20;
+                const ctx = this.canvas.getContext('2d');
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                ctx.globalCompositeOperation = 'lighter';
+                const gTracks = tracks.filter(t => t.groupId === this.id && !t.isMuted);
+                gTracks.forEach(t => {
+                    const startX = t.startTimeOffset * PIXELS_PER_SECOND; const sx = t.trimStart * PIXELS_PER_SECOND; const sw = (t.trimEnd - t.trimStart) * PIXELS_PER_SECOND;
+                    if(sw > 0) { try { ctx.drawImage(t.canvas, sx, 0, sw, t.canvas.height, startX, 0, sw, this.canvas.height); } catch(e){} }
+                });
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        }
+
+        // --- TRACK CLASS ---
+        class Track {
+            constructor(id, file, buffer, name) {
+                this.id = id; this.file = file; this.buffer = buffer; this.name = name || file.name;
+                this.fx = createDefaultFX(); this.fadeIn = 0.0; this.fadeOut = 0.0; 
+                this.isMuted = false; this.isSelected = false; this.groupId = null;
+                this.startTimeOffset = 0; this.trimStart = 0; this.trimEnd = buffer.duration;
+                this.liveNodes = null; this.analyser = audioCtx.createAnalyser(); this.analyser.fftSize = 1024; this.source = null;
+                this.createUI();
+            }
+            createUI() {
+                this.DOM = document.createElement('div'); this.DOM.className = 'track'; this.DOM.id = `track-${this.id}`;
+                const safeName = this.name.replace(/"/g, '&quot;');
+                
+                this.DOM.innerHTML = `
+                    <div class="track-controls">
+                        <input type="text" id="name-input-${this.id}" class="track-name-input" value="${safeName}">
+                        <div class="meter-container"><canvas id="meter-${this.id}" class="vu-meter"></canvas></div>
+                        <div class="control-row">
+                            <input type="checkbox" id="cb-${this.id}" class="track-select-cb">
+                            <button id="mute-${this.id}" class="track-btn mute-btn">Mute</button>
+                            <button onclick="openEQ('${this.id}', false)" class="track-btn">FX</button>
+                        </div>
                     </div>`;
+                    
                 const lane = document.createElement('div'); lane.className = 'waveform-lane';
                 const clip = document.createElement('div'); clip.className = 'audio-clip'; clip.id = `clip-${this.id}`;
-                clip.style.width = (this.buffer.duration * PIXELS_PER_SECOND) + 'px';
-                const canvas = document.createElement('canvas'); canvas.width = Math.min(this.buffer.duration * PIXELS_PER_SECOND, 30000); canvas.height = 90;
-                this.drawWaveform(canvas);
+                this.canvas = document.createElement('canvas'); 
                 const trimL = document.createElement('div'); trimL.className = 'trim-handle trim-start';
                 const trimR = document.createElement('div'); trimR.className = 'trim-handle trim-end';
-                const maskL = document.createElement('div'); maskL.className = 'trim-mask-left'; maskL.style.width = '0px';
-                const maskR = document.createElement('div'); maskR.className = 'trim-mask-right'; maskR.style.width = '0px';
-                clip.append(canvas, maskL, maskR, trimL, trimR); lane.appendChild(clip); div.appendChild(lane);
-                document.getElementById('tracks-area').appendChild(div);
-                this.muteBtn = document.getElementById(`mute-${this.id}`);
-                this.muteBtn.onclick = () => this.toggleMute();
+                const maskL = document.createElement('div'); maskL.className = 'trim-mask-left';
+                const maskR = document.createElement('div'); maskR.className = 'trim-mask-right';
+                const fadeIn = document.createElement('div'); fadeIn.className = 'fade-in-overlay';
+                const fadeOut = document.createElement('div'); fadeOut.className = 'fade-out-overlay';
+                
+                clip.append(this.canvas, maskL, maskR, fadeIn, fadeOut, trimL, trimR); lane.appendChild(clip); this.DOM.appendChild(lane);
+                
+                const nameInput = this.DOM.querySelector(`#name-input-${this.id}`);
+                nameInput.onchange = (e) => { this.name = e.target.value; saveState(); };
+                
+                const cb = this.DOM.querySelector(`#cb-${this.id}`);
+                cb.onchange = (e) => { this.isSelected = e.target.checked; updateSelectionCount(); };
+                
+                this.muteBtn = this.DOM.querySelector(`#mute-${this.id}`);
+                this.muteBtn.onclick = () => { this.isMuted = !this.isMuted; updateMuteVisuals(); saveState(); };
+                
                 this.setupDrag(clip); this.setupTrim(trimL, 'start', clip, maskL); this.setupTrim(trimR, 'end', clip, maskR);
-                refreshTimeline();
+                
+                this.canvas.width = Math.min(this.buffer.duration * PIXELS_PER_SECOND, 30000);
+                this.drawWaveform(this.canvas);
             }
-            toggleMute() {
-                this.isMuted = !this.isMuted;
+            updateVisuals() {
                 this.muteBtn.className = 'track-btn mute-btn ' + (this.isMuted ? 'active' : '');
-                if(this.liveNodes) this.liveNodes.outGain.gain.setValueAtTime(this.isMuted ? 0 : this.fx.vol, audioCtx.currentTime);
+            }
+            updateUIPlacements() {
+                const el = this.DOM.querySelector('.audio-clip'); if(!el) return;
+                el.style.left = (this.startTimeOffset * PIXELS_PER_SECOND) + 'px';
+                el.style.width = (this.buffer.duration * PIXELS_PER_SECOND) + 'px';
+                
+                const maskL = el.querySelector('.trim-mask-left'); const maskR = el.querySelector('.trim-mask-right');
+                const trimL = el.querySelector('.trim-start'); const trimR = el.querySelector('.trim-end');
+                const fIn = el.querySelector('.fade-in-overlay'); const fOut = el.querySelector('.fade-out-overlay');
+                
+                maskL.style.width = (this.trimStart * PIXELS_PER_SECOND) + 'px';
+                maskR.style.width = ((this.buffer.duration - this.trimEnd) * PIXELS_PER_SECOND) + 'px';
+                trimL.style.left = ((this.trimStart * PIXELS_PER_SECOND) - 10) + 'px';
+                trimR.style.right = (((this.buffer.duration - this.trimEnd) * PIXELS_PER_SECOND) - 10) + 'px';
+                
+                fIn.style.width = (this.fadeIn * PIXELS_PER_SECOND) + 'px'; fIn.style.left = (this.trimStart * PIXELS_PER_SECOND) + 'px';
+                fOut.style.width = (this.fadeOut * PIXELS_PER_SECOND) + 'px'; fOut.style.right = ((this.buffer.duration - this.trimEnd) * PIXELS_PER_SECOND) + 'px';
+                
+                if(this.canvas.width !== Math.min(this.buffer.duration * PIXELS_PER_SECOND, 30000)) {
+                    this.canvas.width = Math.min(this.buffer.duration * PIXELS_PER_SECOND, 30000);
+                    this.drawWaveform(this.canvas);
+                }
             }
             drawWaveform(canvas) {
                 const ctx = canvas.getContext('2d'); const data = this.buffer.getChannelData(0); const step = Math.ceil(data.length / canvas.width); const amp = canvas.height / 2;
-                ctx.fillStyle = '#00bcd4'; ctx.beginPath();
+                ctx.clearRect(0,0, canvas.width, canvas.height); ctx.fillStyle = '#00bcd4'; ctx.beginPath();
                 for (let i = 0; i < canvas.width; i++) {
                     let min = 1.0, max = -1.0; for (let j = 0; j < step; j++) { const v = data[(i * step) + j]; if (v < min) min = v; if (v > max) max = v; }
                     ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
@@ -423,10 +662,9 @@
                 let initLeft; addDragListener(el, {
                     onStart: () => { initLeft = el.offsetLeft; el.style.cursor = 'grabbing'; },
                     onMove: (x, dx) => { 
-                        let l = initLeft + dx; 
-                        if (snapEnabled) { const beatDur = 60 / bpm; l = Math.round((l / PIXELS_PER_SECOND) / beatDur) * beatDur * PIXELS_PER_SECOND; }
-                        el.style.left = l + 'px'; this.startTimeOffset = l / PIXELS_PER_SECOND; refreshTimeline(); 
-                    }, onEnd: () => el.style.cursor = 'grab'
+                        let l = initLeft + dx; if (snapEnabled) { const beatDur = 60 / bpm; l = Math.round((l / PIXELS_PER_SECOND) / beatDur) * beatDur * PIXELS_PER_SECOND; }
+                        this.startTimeOffset = l / PIXELS_PER_SECOND; this.updateUIPlacements(); refreshTimeline(); 
+                    }, onEnd: () => { el.style.cursor = 'grab'; saveState(); }
                 });
             }
             setupTrim(h, type, clip, mask) {
@@ -434,20 +672,16 @@
                     onMove: (x, dx) => {
                         const rect = clip.getBoundingClientRect(); const lx = x - rect.left; 
                         let t = lx / PIXELS_PER_SECOND; if (t < 0) t = 0; if (t > this.buffer.duration) t = this.buffer.duration;
-                        if (type === 'start') { if (t >= this.trimEnd - 0.1) return; this.trimStart = t; mask.style.width = lx + 'px'; h.style.left = (lx - 10) + 'px'; } 
-                        else { if (t <= this.trimStart + 0.1) return; this.trimEnd = t; const w = rect.width - lx; mask.style.width = w + 'px'; h.style.right = (w - 10) + 'px'; }
-                        refreshTimeline();
-                    }
+                        if (type === 'start') { if (t >= this.trimEnd - 0.1) return; this.trimStart = t; } else { if (t <= this.trimStart + 0.1) return; this.trimEnd = t; }
+                        this.updateUIPlacements(); refreshTimeline();
+                    }, onEnd: () => { saveState(); }
                 });
             }
             play(ctx, dest, startWhen, fileOffset, playDur) {
                 const src = ctx.createBufferSource(); src.buffer = this.buffer;
                 const isLive = (ctx === audioCtx);
                 const nodes = buildFXChain(ctx, src, dest, this.fx, isLive ? {node: this.analyser} : null);
-                
-                const targetVol = this.isMuted ? 0 : this.fx.vol;
-                nodes.outGain.gain.setValueAtTime(targetVol, startWhen);
-                
+                nodes.outGain.gain.setValueAtTime(this.isMuted ? 0 : this.fx.vol, startWhen);
                 if (!this.isMuted) {
                     if (this.fadeIn > 0) { const fiStart = startWhen + (this.trimStart - fileOffset); nodes.outGain.gain.setValueAtTime(0, fiStart); nodes.outGain.gain.linearRampToValueAtTime(this.fx.vol, fiStart + this.fadeIn); }
                     if (this.fadeOut > 0) { const foEnd = startWhen + (this.trimEnd - fileOffset); nodes.outGain.gain.setValueAtTime(this.fx.vol, foEnd - this.fadeOut); nodes.outGain.gain.linearRampToValueAtTime(0, foEnd); }
@@ -456,6 +690,151 @@
                 src.start(startWhen, fileOffset, playDur);
             }
         }
+
+        // --- BATCH OPERATIONS & DOM SYNC ---
+        function toggleSelectAll() {
+            const allSelected = tracks.every(t => t.isSelected) && (groups.length === 0 || groups.every(g => g.isSelected));
+            const targetState = !allSelected;
+            tracks.forEach(t => { t.isSelected = targetState; t.DOM.querySelector(`#cb-${t.id}`).checked = targetState; });
+            groups.forEach(g => { g.isSelected = targetState; g.DOM.querySelector(`#cb-${g.id}`).checked = targetState; });
+            updateSelectionCount();
+        }
+        function batchAssignGroup(groupId) {
+            if(!groupId) return;
+            const target = groupId === "ROOT" ? null : groupId;
+            tracks.filter(t => t.isSelected).forEach(t => {
+                t.groupId = target;
+                const parent = target ? document.getElementById(`group-tracks-${target}`) : masterArea;
+                if(parent) parent.appendChild(t.DOM);
+            });
+            syncTracksArrayOrder(); updateMuteVisuals(); saveState();
+        }
+        function batchMuteToggle() {
+            const selected = [...tracks.filter(t=>t.isSelected), ...groups.filter(g=>g.isSelected)];
+            if(selected.length === 0) return;
+            const anyMuted = selected.some(x => x.isMuted);
+            selected.forEach(x => { x.isMuted = !anyMuted; x.updateVisuals(); });
+            updateMuteVisuals(); saveState();
+        }
+        function batchDelete() {
+            const selectedTracks = tracks.filter(t=>t.isSelected);
+            const selectedGroups = groups.filter(g=>g.isSelected);
+            if(selectedTracks.length===0 && selectedGroups.length===0) return;
+            
+            selectedGroups.forEach(g => { 
+                tracks.filter(t => t.groupId === g.id && !t.isSelected).forEach(t => { 
+                    t.groupId = null; masterArea.appendChild(t.DOM); 
+                });
+                g.DOM.remove(); 
+            });
+            
+            selectedTracks.forEach(t => { t.DOM.remove(); t.groupId = null; });
+            
+            syncTracksArrayOrder(); updateBatchGroupSelect(); updateSelectionCount(); saveState();
+        }
+        function batchMoveUp() {
+            let moved = false;
+            let items = Array.from(masterArea.children);
+            for(let i=0; i<items.length; i++) {
+                const el = items[i]; const id = el.id.replace('track-','').replace('group-container-','');
+                const obj = masterTrackPool.get(id) || masterGroupPool.get(id);
+                if(obj && obj.isSelected) {
+                    let prev = el.previousElementSibling;
+                    if(prev) {
+                        const prevId = prev.id.replace('track-','').replace('group-container-','');
+                        const prevObj = masterTrackPool.get(prevId) || masterGroupPool.get(prevId);
+                        if(!prevObj || !prevObj.isSelected) { el.parentNode.insertBefore(el, prev); moved = true; }
+                    }
+                }
+            }
+            groups.forEach(g => {
+                const container = document.getElementById(`group-tracks-${g.id}`);
+                let gItems = Array.from(container.children);
+                for(let i=0; i<gItems.length; i++) {
+                    const el = gItems[i]; const id = el.id.replace('track-',''); const obj = masterTrackPool.get(id);
+                    if(obj && obj.isSelected) {
+                        let prev = el.previousElementSibling;
+                        if(prev) {
+                            const prevId = prev.id.replace('track-',''); const prevObj = masterTrackPool.get(prevId);
+                            if(!prevObj || !prevObj.isSelected) { el.parentNode.insertBefore(el, prev); moved = true; }
+                        }
+                    }
+                }
+            });
+            if(moved){ syncTracksArrayOrder(); saveState(); }
+        }
+        function batchMoveDown() {
+            let moved = false;
+            let items = Array.from(masterArea.children);
+            for(let i=items.length-1; i>=0; i--) {
+                const el = items[i]; const id = el.id.replace('track-','').replace('group-container-','');
+                const obj = masterTrackPool.get(id) || masterGroupPool.get(id);
+                if(obj && obj.isSelected) {
+                    let next = el.nextElementSibling;
+                    if(next) {
+                        const nextId = next.id.replace('track-','').replace('group-container-','');
+                        const nextObj = masterTrackPool.get(nextId) || masterGroupPool.get(nextId);
+                        if(!nextObj || !nextObj.isSelected) { el.parentNode.insertBefore(next, el); moved = true; }
+                    }
+                }
+            }
+            groups.forEach(g => {
+                const container = document.getElementById(`group-tracks-${g.id}`);
+                let gItems = Array.from(container.children);
+                for(let i=gItems.length-1; i>=0; i--) {
+                    const el = gItems[i]; const id = el.id.replace('track-',''); const obj = masterTrackPool.get(id);
+                    if(obj && obj.isSelected) {
+                        let next = el.nextElementSibling;
+                        if(next) {
+                            const nextId = next.id.replace('track-',''); const nextObj = masterTrackPool.get(nextId);
+                            if(!nextObj || !nextObj.isSelected) { el.parentNode.insertBefore(next, el); moved = true; }
+                        }
+                    }
+                }
+            });
+            if(moved){ syncTracksArrayOrder(); saveState(); }
+        }
+        function createGroup() {
+            const id = 'g_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            const g = new TrackGroup(id, 'Ryhmä ' + (groups.length + 1));
+            masterGroupPool.set(g.id, g); groups.push(g); masterArea.appendChild(g.DOM);
+            updateBatchGroupSelect(); syncTracksArrayOrder(); saveState();
+        }
+        function updateBatchGroupSelect() {
+            const sel = document.getElementById('batchGroupSelect');
+            sel.innerHTML = '<option value="">-- Siirrä ryhmään --</option><option value="ROOT">Poista ryhmästä (Juuri)</option>';
+            groups.forEach(g => { sel.innerHTML += `<option value="${g.id}">${g.name}</option>`; });
+        }
+        function syncTracksArrayOrder() {
+            const newTracks = []; const newGroups = [];
+            Array.from(masterArea.children).forEach(child => {
+                if (child.classList.contains('track')) {
+                    const tid = child.id.replace('track-', ''); newTracks.push(masterTrackPool.get(tid));
+                } else if (child.classList.contains('group-container')) {
+                    const gid = child.id.replace('group-container-', ''); newGroups.push(masterGroupPool.get(gid));
+                    Array.from(child.querySelector('.group-tracks-area').children).forEach(tChild => {
+                        if (tChild.id.startsWith('track-')) { const tid = tChild.id.replace('track-', ''); newTracks.push(masterTrackPool.get(tid)); }
+                    });
+                }
+            });
+            tracks = newTracks.filter(t => t); groups = newGroups.filter(g => g);
+        }
+        function updateMuteVisuals() {
+            tracks.forEach(t => {
+                let effectivelyMuted = t.isMuted;
+                if (t.groupId) { const g = groups.find(x => x.id === t.groupId); if (g && g.isMuted) effectivelyMuted = true; }
+                if (effectivelyMuted) t.DOM.classList.add('muted'); else t.DOM.classList.remove('muted');
+                t.updateVisuals();
+            });
+            groups.forEach(g => {
+                if (g.isMuted) g.header.classList.add('muted'); else g.header.classList.remove('muted');
+                g.updateVisuals();
+            });
+        }
+
+        // --- ZOOM MANAGEMENT ---
+        function changeZoomX(val) { PIXELS_PER_SECOND = parseInt(val); refreshTimeline(); tracks.forEach(t => t.updateUIPlacements()); groups.forEach(g => g.drawCombinedWaveform()); }
+        function changeZoomY(val) { document.documentElement.style.setProperty('--track-height', parseInt(val) + 'px'); }
 
         // --- DRAW METER LOGIC ---
         function drawMeter(analyser, canvasId) {
@@ -467,8 +846,7 @@
             const rms = Math.sqrt(sum / data.length); let db = 20 * Math.log10(rms); if (!isFinite(db)) db = -100;
             let pct = (db + 60) / 60; if(pct<0)pct=0; if(pct>1)pct=1;
             ctx.fillStyle = '#111'; ctx.fillRect(0,0,w,h);
-            const grad = ctx.createLinearGradient(0,0,w,0);
-            grad.addColorStop(0, '#00ff00'); grad.addColorStop(0.75, '#ffff00'); grad.addColorStop(0.95, '#ff0000');
+            const grad = ctx.createLinearGradient(0,0,w,0); grad.addColorStop(0, '#00ff00'); grad.addColorStop(0.75, '#ffff00'); grad.addColorStop(0.95, '#ff0000');
             ctx.fillStyle = grad; ctx.fillRect(0,0,w*pct,h);
         }
 
@@ -482,47 +860,35 @@
                 case 'KeyD': e.preventDefault(); seek(5); break;
                 case 'KeyR': e.preventDefault(); toggleRecord(); break;
                 case 'KeyM': e.preventDefault(); toggleMetronome(); break;
+                case 'KeyZ': if(e.ctrlKey) { e.preventDefault(); undo(); } break;
+                case 'KeyY': if(e.ctrlKey) { e.preventDefault(); redo(); } break;
+                case 'Delete':
+                case 'Backspace': e.preventDefault(); batchDelete(); break;
             }
         });
-
         function seek(delta) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            currentPlayTime += delta; if (currentPlayTime < 0) currentPlayTime = 0;
-            updatePlayheadVisual(); updateTimeDisplay();
-            if (isPlaying) { stop(true); play(); }
+            if (audioCtx.state === 'suspended') audioCtx.resume(); currentPlayTime += delta; if (currentPlayTime < 0) currentPlayTime = 0;
+            updatePlayheadVisual(); updateTimeDisplay(); if (isPlaying) { stop(true); play(); }
         }
 
         // --- RECORDING ---
-        document.getElementById('micSelect').addEventListener('focus', async () => {
-            if (!micPermissionGranted) { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); stream.getTracks().forEach(t => t.stop()); micPermissionGranted = true; await updateDeviceList(); } catch(e) {} }
-        });
-        async function updateDeviceList() {
-            try { const select = document.getElementById('micSelect'); const devices = await navigator.mediaDevices.enumerateDevices();
-                const audioInputs = devices.filter(d => d.kind === 'audioinput'); const currentVal = select.value;
-                select.innerHTML = '<option value="">Oletusmikrofoni</option>';
-                audioInputs.forEach(d => { const opt = document.createElement('option'); opt.value = d.deviceId; opt.text = d.label || `Mikrofoni ${select.length}`; select.appendChild(opt); });
-                if ([...select.options].some(o => o.value === currentVal)) select.value = currentVal;
-            } catch(e) {}
-        }
-        navigator.mediaDevices.ondevicechange = () => { if(micPermissionGranted) updateDeviceList(); };
-
         async function toggleRecord() { if (isRecording) stopRecording(); else await startRecording(); }
         async function startRecording() {
             if (audioCtx.state === 'suspended') await audioCtx.resume();
-            const micId = document.getElementById('micSelect').value; const constraints = { audio: micId ? { deviceId: { exact: micId } } : true };
             try {
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                if (!micPermissionGranted) { micPermissionGranted = true; updateDeviceList(); }
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 if(micStreamSource) micStreamSource.disconnect(); micStreamSource = audioCtx.createMediaStreamSource(stream); micStreamSource.connect(micAnalyser);
                 mediaRecorder = new MediaRecorder(stream); recordedChunks = []; recordStartTime = currentPlayTime;
                 mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = async () => {
-                    micStreamSource.disconnect(); micStreamSource = null; setStatus("Käsitellään...", true);
+                    micStreamSource.disconnect(); micStreamSource = null;
                     const arrayBuffer = await (new Blob(recordedChunks)).arrayBuffer();
                     try { const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                        const t = new Track('t_'+Date.now(), {name: `Äänitys ${new Date().toLocaleTimeString('fi-FI')}`}, audioBuffer, {rate: audioBuffer.sampleRate, depth: "N/A"});
-                        t.startTimeOffset = recordStartTime; tracks.push(t); refreshTimeline(); setStatus("Valmis");
-                    } catch(e) { setStatus("Virhe"); }
+                        const id = 't_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                        const t = new Track(id, {name: `Äänitys ${new Date().toLocaleTimeString('fi-FI')}`}, audioBuffer);
+                        t.startTimeOffset = recordStartTime; masterTrackPool.set(t.id, t); tracks.push(t); masterArea.appendChild(t.DOM); t.updateUIPlacements();
+                        syncTracksArrayOrder(); refreshTimeline(); saveState();
+                    } catch(e) {}
                 };
                 mediaRecorder.start(); isRecording = true; document.getElementById('recBtn').classList.add('rec-active');
                 if (!isPlaying) play();
@@ -534,24 +900,34 @@
         function togglePlay() { isPlaying ? stop(false) : play(); }
         function play() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            stop(true); playStartTime = audioCtx.currentTime; playStartOffset = currentPlayTime; isPlaying = true; document.getElementById('playBtn').innerText = "Tauko (Space)";
+            stop(true); playStartTime = audioCtx.currentTime; playStartOffset = currentPlayTime; isPlaying = true; document.getElementById('playBtn').innerText = "Tauko";
             const beatDur = 60 / bpm; let startBeat = Math.ceil(currentPlayTime / beatDur); if (Math.abs((currentPlayTime / beatDur) - Math.round(currentPlayTime / beatDur)) < 0.01) startBeat = Math.round(currentPlayTime / beatDur);
             nextMetroTime = audioCtx.currentTime + (startBeat * beatDur - currentPlayTime); currentBeat = startBeat % 4;
-            rebuildMasterGraph(); // Rebuild graph on play to reset LFOs
+            
+            rebuildMasterGraph();
+            const groupNodes = {};
+            groups.forEach(g => {
+                const inNode = audioCtx.createGain();
+                const nodes = buildFXChain(audioCtx, inNode, busGain, g.fx, {node: g.analyser});
+                nodes.outGain.gain.setValueAtTime(g.isMuted ? 0 : g.fx.vol, audioCtx.currentTime);
+                g.liveNodes = { inNode, ...nodes }; groupNodes[g.id] = inNode;
+            });
+
             tracks.forEach(t => {
                 const aStart = t.startTimeOffset + t.trimStart; const aEnd = t.startTimeOffset + t.trimEnd;
                 if (currentPlayTime >= aEnd) return;
                 let when, offset, dur;
                 if (currentPlayTime < aStart) { when = audioCtx.currentTime + (aStart - currentPlayTime); offset = t.trimStart; dur = aEnd - aStart; } 
                 else { when = audioCtx.currentTime; offset = currentPlayTime - t.startTimeOffset; dur = aEnd - currentPlayTime; }
-                if (dur > 0) t.play(audioCtx, busGain, when, offset, dur);
+                const dest = t.groupId && groupNodes[t.groupId] ? groupNodes[t.groupId] : busGain;
+                if (dur > 0) t.play(audioCtx, dest, when, offset, dur);
             });
             requestAnimationFrame(animationLoop);
         }
         function stop(seeking = false) {
             if (isRecording && !seeking) stopRecording();
             tracks.forEach(t => { if (t.source) { try{t.source.stop();}catch(e){} t.source.disconnect(); t.source = null; } });
-            isPlaying = false; if (!seeking) { document.getElementById('playBtn').innerText = "Toista (Space)"; cancelAnimationFrame(animationId); }
+            isPlaying = false; if (!seeking) { document.getElementById('playBtn').innerText = "Toista"; cancelAnimationFrame(animationId); }
         }
         function toBeginning() { currentPlayTime = 0; updatePlayheadVisual(); updateTimeDisplay(); if (isPlaying) { stop(true); play(); } }
         
@@ -560,127 +936,79 @@
             if (metronomeEnabled) { const beatDur = 60 / bpm; while (nextMetroTime < audioCtx.currentTime + 0.1) { playMetronomeClick(nextMetroTime, currentBeat); nextMetroTime += beatDur; currentBeat = (currentBeat + 1) % 4; } }
             updatePlayheadVisual(); updateTimeDisplay();
             drawMeter(masterAnalyser, 'masterMeterL'); drawMeter(masterAnalyser, 'masterMeterR'); drawMeter(micAnalyser, 'micMeter');
-            tracks.forEach(t => drawMeter(t.analyser, `meter-${t.id}`));
+            tracks.forEach(t => drawMeter(t.analyser, `meter-${t.id}`)); groups.forEach(g => drawMeter(g.analyser, `meter-${g.id}`));
             animationId = requestAnimationFrame(animationLoop);
         }
 
-        // Metronome / Snap
         function toggleSnap() { snapEnabled = !snapEnabled; document.getElementById('snapBtn').innerText = snapEnabled ? "Snap: ON" : "Snap: OFF"; document.getElementById('snapBtn').classList.toggle('active', snapEnabled); updateGrid(); }
         function toggleMetronome() { metronomeEnabled = !metronomeEnabled; document.getElementById('metroBtn').innerText = metronomeEnabled ? "Metro: ON" : "Metro: OFF"; document.getElementById('metroBtn').classList.toggle('active', metronomeEnabled); }
         function playMetronomeClick(time, beat) { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.frequency.value = (beat === 0) ? 1000 : 800; gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(0.5, time + 0.005); gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1); osc.start(time); osc.stop(time + 0.1); }
         
         function updateGrid() {
-            bpm = parseInt(document.getElementById('bpmInput').value) || 120;
-            const tArea = document.getElementById('tracks-area');
+            bpm = parseInt(document.getElementById('bpmInput').value) || 120; const tArea = document.getElementById('tracks-area');
             if (!snapEnabled) { tArea.style.backgroundImage = 'none'; return; }
             tArea.style.backgroundImage = `linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px)`;
             tArea.style.backgroundSize = `${(60/bpm)*PIXELS_PER_SECOND}px 100%`; tArea.style.backgroundPosition = `${CONTROL_WIDTH}px 0`;
         }
 
-        // Timeline utils
         function getProjectDuration() { let max = 0; tracks.forEach(t => { const end = t.startTimeOffset + (t.trimEnd - t.trimStart); if(end > max) max = end; }); return max; }
         function updateTimelineDimensions() { const totalSeconds = Math.max(getProjectDuration() + 10, 60); const w = (totalSeconds * PIXELS_PER_SECOND) + CONTROL_WIDTH; document.getElementById('tracks-area').style.width = w + 'px'; rulerCanvas.width = w; drawRuler(rulerCanvas, totalSeconds); }
         function drawRuler(canvas, s) { const ctx = canvas.getContext('2d'); ctx.clearRect(0,0, canvas.width, canvas.height); ctx.fillStyle = '#222'; ctx.fillRect(0,0, canvas.width, canvas.height); ctx.font = '10px sans-serif'; ctx.fillStyle = '#888'; ctx.strokeStyle = '#555'; ctx.lineWidth = 1; for(let i=0; i<=s; i++){ const x = CONTROL_WIDTH + (i*PIXELS_PER_SECOND); ctx.beginPath(); ctx.moveTo(x, 12); ctx.lineTo(x, 24); ctx.stroke(); ctx.fillText(i+'s', x+3, 22); const hx = x+(PIXELS_PER_SECOND/2); if(i<s){ ctx.beginPath(); ctx.moveTo(hx, 18); ctx.lineTo(hx, 24); ctx.stroke(); } } }
         function refreshTimeline() { updateTimelineDimensions(); }
         function updatePlayheadVisual() { const px = (currentPlayTime * PIXELS_PER_SECOND) + CONTROL_WIDTH; playheadContainer.style.transform = `translateX(${px}px)`; const cw = timelineContainer.clientWidth; const sl = timelineContainer.scrollLeft; if(px > sl + cw - 50) timelineContainer.scrollLeft = px - 50; }
         function updateTimeDisplay() { let t = currentPlayTime < 0 ? 0 : currentPlayTime; let s = Math.floor(t); let ms = Math.floor((t - s)*100); let m = Math.floor(s/60); s = s%60; const f = n => n.toString().padStart(2, '0'); timeDisplay.innerText = `${f(m)}:${f(s)}:${f(ms)}`; }
-        function removeTrack(id) { document.getElementById(`track-${id}`)?.remove(); tracks = tracks.filter(t => t.id !== id); refreshTimeline(); }
         
         function addDragListener(e,o){const{onStart:n,onMove:t,onEnd:a,stopProp:l=!0}=o;let c=0,i=!1;const r=(e,o)=>{l&&e.stopPropagation(),i=!0,c=o,n&&n(o,e)},s=(e,o)=>{i&&(e.cancelable&&e.preventDefault(),t&&t(o,o-c,e))},d=e=>{i&&(i=!1,a&&a(e))};e.addEventListener("mousedown",e=>r(e,e.clientX)),window.addEventListener("mousemove",e=>s(e,e.clientX)),window.addEventListener("mouseup",d),e.addEventListener("touchstart",e=>r(e,e.touches[0].clientX),{passive:!1}),window.addEventListener("touchmove",e=>s(e,e.touches[0].clientX),{passive:!1}),window.addEventListener("touchend",d)}
         setupTimelineSeek(); function setupTimelineSeek(){const e=t=>{let o=t-timelineContainer.getBoundingClientRect().left+timelineContainer.scrollLeft-CONTROL_WIDTH;o<0&&(o=0);currentPlayTime=o/PIXELS_PER_SECOND;updatePlayheadVisual();updateTimeDisplay();if(isPlaying){stop(!0);play();}};addDragListener(rulerCanvas,{onStart:(t,o)=>e(t),onMove:(t,o,n)=>e(t),stopProp:!1});timelineContainer.addEventListener("mousedown",t=>{if(t.target.id==='timeline-container'||t.target.id==='tracks-area')e(t.clientX);});}
-        
-        async function scanWavHeader(file) { if(file.name.toLowerCase().endsWith('.mp3')) return {rate:"MP3", depth:"MP3"}; try{ const ab=await file.slice(0,4096).arrayBuffer(); const v=new DataView(ab); if(v.getUint32(0,false)!==0x52494646 || v.getUint32(8,false)!==0x57415645) return{rate:"Unk",depth:"Unk"}; let o=12; while(o<v.byteLength){ if(o+8>v.byteLength)break; if(v.getUint32(o,false)===0x666d7420) return{rate:v.getUint32(o+12,true),depth:v.getUint16(o+22,true)+"-bit"}; o+=8+v.getUint32(o+4,true); } return{rate:"Unk",depth:"Unk"}; }catch(e){return{rate:"Unk",depth:"Unk"};} }
-        function calculatePeakDB(e){let t=0;for(let a=0;a<e.numberOfChannels;a++){const n=e.getChannelData(a);for(let e=0;e<n.length;e++){const a=Math.abs(n[e]);a>t&&(t=a)}}if(0===t)return"-inf dB";return (20*Math.log10(t)).toFixed(2)+" dB"}
 
-        // Dynamic UI Generator
-        function buildFXUI(containerId, fxObj, titleStr, onUpdate) {
+        function buildFXUI(containerId, parentObj, fxObj, titleStr, onUpdate) {
             const container = document.getElementById(containerId);
             container.innerHTML = `<h3 style="margin:0; color:white; flex-shrink:0;">${titleStr}</h3>`;
             
             const bind = (id, propPath, displayFn) => {
                 const el = document.getElementById(id); const span = document.getElementById(id+'Val');
-                const path = propPath.split('.'); let obj = fxObj; for(let i=0; i<path.length-1; i++) obj = obj[path[i]];
-                const key = path[path.length-1];
-                const updateVis = (val) => { if(span) span.innerText = displayFn(val); };
-                updateVis(obj[key]); el.value = obj[key];
-                el.oninput = (e) => { const v = parseFloat(e.target.value); obj[key] = v; updateVis(v); onUpdate(); };
+                const path = propPath.split('.'); let obj = fxObj; for(let i=0; i<path.length-1; i++) obj = obj[path[i]]; const key = path[path.length-1];
+                const updateVis = (val) => { if(span) span.innerText = displayFn(val); }; updateVis(obj[key]); el.value = obj[key];
+                el.oninput = (e) => { const v = parseFloat(e.target.value); obj[key] = v; updateVis(v); onUpdate(); }; el.onchange = () => saveState();
+            };
+            const bindObjProperty = (id, obj, prop, displayFn) => {
+                const el = document.getElementById(id); const span = document.getElementById(id+'Val');
+                const updateVis = (val) => { if(span) span.innerText = displayFn(val); }; updateVis(obj[prop]); el.value = obj[prop];
+                el.oninput = (e) => { const v = parseFloat(e.target.value); obj[prop] = v; updateVis(v); onUpdate(); }; el.onchange = () => saveState();
             };
             const bindToggle = (id, fxKey) => {
                 const btn = document.getElementById(id); btn.className = 'fx-toggle ' + (fxObj[fxKey].on?'on':''); btn.innerText = fxObj[fxKey].on?'ON':'OFF';
-                btn.onclick = () => { fxObj[fxKey].on = !fxObj[fxKey].on; btn.className = 'fx-toggle ' + (fxObj[fxKey].on?'on':''); btn.innerText = fxObj[fxKey].on?'ON':'OFF'; onUpdate(); };
+                btn.onclick = () => { fxObj[fxKey].on = !fxObj[fxKey].on; btn.className = 'fx-toggle ' + (fxObj[fxKey].on?'on':''); btn.innerText = fxObj[fxKey].on?'ON':'OFF'; onUpdate(); saveState(); };
             };
             const fPct = v=>Math.round(v*100)+'%'; const fSec = v=>v.toFixed(2)+'s'; const fHz = v=>Math.round(v)+'Hz'; const fDb = v=>v.toFixed(1)+'dB';
-
             const addRow = (html) => { const d = document.createElement('div'); d.className='settings-row'; d.innerHTML=html; container.appendChild(d); };
 
-            // Vol/Pan
-            addRow(`
-                <div class="control-group"><label>Vol: <span id="uiVolVal"></span></label><input type="range" id="uiVol" min="0" max="2" step="0.01"></div>
-                <div class="control-group"><label>Pan: <span id="uiPanVal"></span></label><input type="range" id="uiPan" min="-1" max="1" step="0.05"></div>
-            `);
-
-            // Filters
-            addRow(`
-                <div class="fx-header"><span class="fx-title">LPF</span><button id="togLpf" class="fx-toggle">OFF</button></div>
-                <div class="control-group"><label>Freq: <span id="uiLpfFreqVal"></span></label><input type="range" id="uiLpfFreq" min="20" max="20000" step="10"></div>
-                <div class="control-group"><label>Res (Q): <span id="uiLpfQVal"></span></label><input type="range" id="uiLpfQ" min="0.1" max="20" step="0.1"></div>
-                <div style="width:10px"></div>
-                <div class="fx-header"><span class="fx-title">HPF</span><button id="togHpf" class="fx-toggle">OFF</button></div>
-                <div class="control-group"><label>Freq: <span id="uiHpfFreqVal"></span></label><input type="range" id="uiHpfFreq" min="20" max="20000" step="10"></div>
-                <div class="control-group"><label>Res (Q): <span id="uiHpfQVal"></span></label><input type="range" id="uiHpfQ" min="0.1" max="20" step="0.1"></div>
-            `);
-
-            // Reverb
-            addRow(`
-                <div class="fx-header"><span class="fx-title">Reverb</span><button id="togRev" class="fx-toggle">OFF</button></div>
-                <div class="control-group"><label>Mix: <span id="uiRevMixVal"></span></label><input type="range" id="uiRevMix" min="0" max="1" step="0.05"></div>
-                <div class="control-group"><label>Decay: <span id="uiRevDecayVal"></span></label><input type="range" id="uiRevDecay" min="0.1" max="5.0" step="0.1"></div>
-            `);
-
-            // Chorus & Flanger
-            addRow(`
-                <div class="fx-header"><span class="fx-title">Chorus</span><button id="togCho" class="fx-toggle">OFF</button></div>
-                <div class="control-group"><label>Mix: <span id="uiChoMixVal"></span></label><input type="range" id="uiChoMix" min="0" max="1" step="0.05"></div>
-                <div class="control-group"><label>Rate: <span id="uiChoRateVal"></span></label><input type="range" id="uiChoRate" min="0.1" max="10" step="0.1"></div>
-                <div class="control-group"><label>Depth: <span id="uiChoDepthVal"></span></label><input type="range" id="uiChoDepth" min="0" max="0.01" step="0.001"></div>
-            `);
-            addRow(`
-                <div class="fx-header"><span class="fx-title">Flanger</span><button id="togFla" class="fx-toggle">OFF</button></div>
-                <div class="control-group"><label>Mix: <span id="uiFlaMixVal"></span></label><input type="range" id="uiFlaMix" min="0" max="1" step="0.05"></div>
-                <div class="control-group"><label>Rate: <span id="uiFlaRateVal"></span></label><input type="range" id="uiFlaRate" min="0.1" max="10" step="0.1"></div>
-                <div class="control-group"><label>Fdbk: <span id="uiFlaFdbkVal"></span></label><input type="range" id="uiFlaFdbk" min="0" max="0.95" step="0.05"></div>
-            `);
-
-            // Delay
-            addRow(`
-                <div class="fx-header"><span class="fx-title">Delay</span><button id="togDel" class="fx-toggle">OFF</button></div>
-                <div class="control-group"><label>Time: <span id="uiDelTimeVal"></span></label><input type="range" id="uiDelTime" min="0" max="2" step="0.01"></div>
-                <div class="control-group"><label>Fdbk: <span id="uiDelFdbkVal"></span></label><input type="range" id="uiDelFdbk" min="0" max="0.95" step="0.05"></div>
-                <div class="control-group"><label>Mix: <span id="uiDelMixVal"></span></label><input type="range" id="uiDelMix" min="0" max="1" step="0.05"></div>
-            `);
-
-            // EQ
+            addRow(`<div class="control-group"><label>Vol: <span id="uiVolVal"></span></label><input type="range" id="uiVol" min="0" max="2" step="0.01"></div><div class="control-group"><label>Pan: <span id="uiPanVal"></span></label><input type="range" id="uiPan" min="-1" max="1" step="0.05"></div>`);
+            if (parentObj instanceof Track) {
+                addRow(`<div class="fx-header"><span class="fx-title">Fades</span></div><div class="control-group"><label>Fade In: <span id="uiFadeInVal"></span></label><input type="range" id="uiFadeIn" min="0" max="10" step="0.1"></div><div class="control-group"><label>Fade Out: <span id="uiFadeOutVal"></span></label><input type="range" id="uiFadeOut" min="0" max="10" step="0.1"></div>`);
+                bindObjProperty('uiFadeIn', parentObj, 'fadeIn', fSec); bindObjProperty('uiFadeOut', parentObj, 'fadeOut', fSec);
+            }
+            addRow(`<div class="fx-header"><span class="fx-title">LPF</span><button id="togLpf" class="fx-toggle">OFF</button></div><div class="control-group"><label>Freq: <span id="uiLpfFreqVal"></span></label><input type="range" id="uiLpfFreq" min="20" max="20000" step="10"></div><div class="control-group"><label>Res: <span id="uiLpfQVal"></span></label><input type="range" id="uiLpfQ" min="0.1" max="20" step="0.1"></div><div style="width:10px"></div><div class="fx-header"><span class="fx-title">HPF</span><button id="togHpf" class="fx-toggle">OFF</button></div><div class="control-group"><label>Freq: <span id="uiHpfFreqVal"></span></label><input type="range" id="uiHpfFreq" min="20" max="20000" step="10"></div><div class="control-group"><label>Res: <span id="uiHpfQVal"></span></label><input type="range" id="uiHpfQ" min="0.1" max="20" step="0.1"></div>`);
+            addRow(`<div class="fx-header"><span class="fx-title">Reverb</span><button id="togRev" class="fx-toggle">OFF</button></div><div class="control-group"><label>Mix: <span id="uiRevMixVal"></span></label><input type="range" id="uiRevMix" min="0" max="1" step="0.05"></div><div class="control-group"><label>Decay: <span id="uiRevDecayVal"></span></label><input type="range" id="uiRevDecay" min="0.1" max="5.0" step="0.1"></div>`);
+            addRow(`<div class="fx-header"><span class="fx-title">Chorus</span><button id="togCho" class="fx-toggle">OFF</button></div><div class="control-group"><label>Mix: <span id="uiChoMixVal"></span></label><input type="range" id="uiChoMix" min="0" max="1" step="0.05"></div><div class="control-group"><label>Rate: <span id="uiChoRateVal"></span></label><input type="range" id="uiChoRate" min="0.1" max="10" step="0.1"></div><div class="control-group"><label>Depth: <span id="uiChoDepthVal"></span></label><input type="range" id="uiChoDepth" min="0" max="0.01" step="0.001"></div>`);
+            addRow(`<div class="fx-header"><span class="fx-title">Flanger</span><button id="togFla" class="fx-toggle">OFF</button></div><div class="control-group"><label>Mix: <span id="uiFlaMixVal"></span></label><input type="range" id="uiFlaMix" min="0" max="1" step="0.05"></div><div class="control-group"><label>Rate: <span id="uiFlaRateVal"></span></label><input type="range" id="uiFlaRate" min="0.1" max="10" step="0.1"></div><div class="control-group"><label>Fdbk: <span id="uiFlaFdbkVal"></span></label><input type="range" id="uiFlaFdbk" min="0" max="0.95" step="0.05"></div>`);
+            addRow(`<div class="fx-header"><span class="fx-title">Delay</span><button id="togDel" class="fx-toggle">OFF</button></div><div class="control-group"><label>Time: <span id="uiDelTimeVal"></span></label><input type="range" id="uiDelTime" min="0" max="2" step="0.01"></div><div class="control-group"><label>Fdbk: <span id="uiDelFdbkVal"></span></label><input type="range" id="uiDelFdbk" min="0" max="0.95" step="0.05"></div><div class="control-group"><label>Mix: <span id="uiDelMixVal"></span></label><input type="range" id="uiDelMix" min="0" max="1" step="0.05"></div>`);
+            
             const eqDiv = document.createElement('div'); eqDiv.className = 'settings-row'; eqDiv.style.display='block';
             eqDiv.innerHTML = `<div class="fx-header"><span class="fx-title">EQ (16-Band)</span><button id="togEq" class="fx-toggle">OFF</button></div>`;
             const eqGrid = document.createElement('div'); eqGrid.className = 'eq-grid';
             EQ_FREQS.forEach((f, i) => {
                 const div = document.createElement('div'); div.className = 'eq-band'; const inp = document.createElement('input'); inp.type = 'range'; inp.min = -15; inp.max = 15; inp.step = 0.5; inp.value = fxObj.eq.values[i];
-                inp.oninput = e => { fxObj.eq.values[i] = parseFloat(e.target.value); onUpdate(); }; inp.addEventListener('touchmove', e => e.stopPropagation(), {passive:true}); div.append(inp); eqGrid.appendChild(div);
+                inp.oninput = e => { fxObj.eq.values[i] = parseFloat(e.target.value); onUpdate(); }; inp.onchange = () => saveState();
+                inp.addEventListener('touchmove', e => e.stopPropagation(), {passive:true}); div.append(inp); eqGrid.appendChild(div);
             });
             eqDiv.appendChild(eqGrid); container.appendChild(eqDiv);
 
-            // Limiter
-            addRow(`
-                <div class="fx-header"><span class="fx-title">Limiter</span><button id="togLim" class="fx-toggle">OFF</button></div>
-                <div class="control-group"><label>Thresh: <span id="uiLimThreshVal"></span></label><input type="range" id="uiLimThresh" min="-20" max="0" step="0.1"></div>
-            `);
+            addRow(`<div class="fx-header"><span class="fx-title">Limiter</span><button id="togLim" class="fx-toggle">OFF</button></div><div class="control-group"><label>Thresh: <span id="uiLimThreshVal"></span></label><input type="range" id="uiLimThresh" min="-20" max="0" step="0.1"></div>`);
 
-            // Actions
             const actDiv = document.createElement('div'); actDiv.style="display:flex; gap:10px; justify-content: flex-end; margin-top:10px; flex-shrink:0;";
-            actDiv.innerHTML = `<button onclick="document.querySelector('.modal.active').classList.remove('active')" class="primary">Sulje</button>`;
-            container.appendChild(actDiv);
+            actDiv.innerHTML = `<button onclick="document.querySelector('.modal.active').classList.remove('active')" class="primary">Sulje</button>`; container.appendChild(actDiv);
 
-            // Bindings
             bind('uiVol', 'vol', fPct); bind('uiPan', 'pan', v=>v===0?'C':(v<0?'L':'R'));
             bindToggle('togLpf', 'lpf'); bind('uiLpfFreq', 'lpf.freq', fHz); bind('uiLpfQ', 'lpf.q', v=>v.toFixed(1));
             bindToggle('togHpf', 'hpf'); bind('uiHpfFreq', 'hpf.freq', fHz); bind('uiHpfQ', 'hpf.q', v=>v.toFixed(1));
@@ -688,37 +1016,27 @@
             bindToggle('togCho', 'chorus'); bind('uiChoMix', 'chorus.mix', fPct); bind('uiChoRate', 'chorus.rate', fHz); bind('uiChoDepth', 'chorus.depth', v=>v.toFixed(3));
             bindToggle('togFla', 'flanger'); bind('uiFlaMix', 'flanger.mix', fPct); bind('uiFlaRate', 'flanger.rate', fHz); bind('uiFlaFdbk', 'flanger.feedback', fPct);
             bindToggle('togDel', 'delay'); bind('uiDelTime', 'delay.time', fSec); bind('uiDelFdbk', 'delay.feedback', fPct); bind('uiDelMix', 'delay.mix', fPct);
-            bindToggle('togEq', 'eq');
-            bindToggle('togLim', 'limiter'); bind('uiLimThresh', 'limiter.threshold', fDb);
+            bindToggle('togEq', 'eq'); bindToggle('togLim', 'limiter'); bind('uiLimThresh', 'limiter.threshold', fDb);
         }
 
         function openMasterFX() {
-            buildFXUI('masterFxContent', masterFX, 'Master FX', () => { rebuildMasterGraph(); });
-            document.getElementById('fxModal').classList.add('active');
+            buildFXUI('masterFxContent', null, masterFX, 'Master FX', () => rebuildMasterGraph()); document.getElementById('fxModal').classList.add('active');
         }
 
-        function openEQ(id) {
-            currentEditingTrackId = id; const t = tracks.find(x => x.id === id); if(!t) return;
-            buildFXUI('trackFxContent', t.fx, 'Track: ' + t.file.name, () => {
-                if (t.liveNodes && !t.isMuted) {
-                    t.liveNodes.outGain.gain.setValueAtTime(t.fx.vol, audioCtx.currentTime);
-                    t.liveNodes.panner.pan.setValueAtTime(t.fx.pan, audioCtx.currentTime);
-                }
-            });
+        function openEQ(id, isGroup = false) {
+            if(isGroup) {
+                const g = masterGroupPool.get(id); if(!g) return;
+                buildFXUI('trackFxContent', g, g.fx, 'Ryhmä: ' + g.name, () => {
+                    if (g.liveNodes && !g.isMuted) { g.liveNodes.outGain.gain.setValueAtTime(g.fx.vol, audioCtx.currentTime); g.liveNodes.panner.pan.setValueAtTime(g.fx.pan, audioCtx.currentTime); }
+                });
+            } else {
+                const t = masterTrackPool.get(id); if(!t) return;
+                buildFXUI('trackFxContent', t, t.fx, 'Raita: ' + t.name, () => {
+                    if (t.liveNodes && !t.isMuted) { t.liveNodes.outGain.gain.setValueAtTime(t.fx.vol, audioCtx.currentTime); t.liveNodes.panner.pan.setValueAtTime(t.fx.pan, audioCtx.currentTime); }
+                    t.updateUIPlacements(); 
+                });
+            }
             document.getElementById('eqModal').classList.add('active');
-        }
-
-        // --- JSON SAVE & LOAD ---
-        function saveProject() {
-            const proj = {
-                bpm, masterFX,
-                tracks: tracks.map(t => ({
-                    fileName: t.file.name, fx: t.fx, fadeIn: t.fadeIn, fadeOut: t.fadeOut, isMuted: t.isMuted,
-                    startTimeOffset: t.startTimeOffset, trimStart: t.trimStart, trimEnd: t.trimEnd
-                }))
-            };
-            const blob = new Blob([JSON.stringify(proj, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'projekti.json'; a.click();
         }
 
         document.getElementById('loadInput').addEventListener('change', async (e) => {
@@ -728,85 +1046,82 @@
             
             try {
                 const text = await jsonFile.text(); const proj = JSON.parse(text);
-                
-                // Clear current
-                stop(); tracks.forEach(t => document.getElementById(`track-${t.id}`)?.remove()); tracks = [];
+                stop(); tracks.forEach(t => t.DOM.remove()); tracks = []; groups.forEach(g => g.DOM.remove()); groups = [];
+                masterTrackPool.clear(); masterGroupPool.clear(); undoStack = []; redoStack = []; updateUndoRedoButtons();
                 
                 bpm = proj.bpm || 120; document.getElementById('bpmInput').value = bpm; updateGrid();
                 if(proj.masterFX) masterFX = proj.masterFX; rebuildMasterGraph();
+                if(proj.PIXELS_PER_SECOND) { PIXELS_PER_SECOND = proj.PIXELS_PER_SECOND; document.getElementById('zoomXInput').value = PIXELS_PER_SECOND; }
 
-                let missing = [];
+                if(proj.groups) {
+                    proj.groups.forEach(gData => {
+                        const g = new TrackGroup(gData.id, gData.name);
+                        g.fx = gData.fx; g.isMuted = gData.isMuted; g.isSelected = gData.isSelected; g.isCollapsed = gData.isCollapsed;
+                        masterGroupPool.set(g.id, g); groups.push(g); masterArea.appendChild(g.DOM);
+                        g.DOM.querySelector(`#cb-${g.id}`).checked = g.isSelected; g.updateVisuals();
+                    });
+                }
+
                 for (let tData of proj.tracks) {
-                    const audioFile = files.find(f => f.name === tData.fileName);
-                    if (!audioFile) { missing.push(tData.fileName); continue; }
+                    const audioFile = files.find(f => f.name === tData.name || f.name === tData.fileName);
+                    if (!audioFile) continue;
+                    const ab = await audioFile.arrayBuffer(); const buff = await audioCtx.decodeAudioData(ab);
                     
-                    const info = await scanWavHeader(audioFile);
-                    const ab = await audioFile.arrayBuffer();
-                    const buff = await audioCtx.decodeAudioData(ab);
-                    
-                    const t = new Track('t_'+Date.now()+Math.random(), audioFile, buff, info);
-                    t.fx = tData.fx; t.fadeIn = tData.fadeIn; t.fadeOut = tData.fadeOut; t.isMuted = tData.isMuted;
+                    const t = new Track(tData.id || 't_'+Date.now()+'_'+Math.floor(Math.random()*1000), audioFile, buff, tData.name);
+                    t.fx = tData.fx; t.fadeIn = tData.fadeIn || 0; t.fadeOut = tData.fadeOut || 0; t.isMuted = tData.isMuted; t.isSelected = tData.isSelected;
                     t.startTimeOffset = tData.startTimeOffset; t.trimStart = tData.trimStart; t.trimEnd = tData.trimEnd;
                     
-                    // Update UI placements
-                    const el = document.getElementById(`clip-${t.id}`);
-                    el.style.left = (t.startTimeOffset * PIXELS_PER_SECOND) + 'px';
-                    const maskL = el.querySelector('.trim-mask-left'); const maskR = el.querySelector('.trim-mask-right');
-                    maskL.style.width = (t.trimStart * PIXELS_PER_SECOND) + 'px';
-                    maskR.style.width = ((t.buffer.duration - t.trimEnd) * PIXELS_PER_SECOND) + 'px';
+                    masterTrackPool.set(t.id, t); 
+                    if(tData.groupId && masterGroupPool.has(tData.groupId)) { t.groupId = tData.groupId; document.getElementById(`group-tracks-${t.groupId}`).appendChild(t.DOM); }
+                    else { masterArea.appendChild(t.DOM); }
                     
-                    tracks.push(t);
+                    t.DOM.querySelector(`#cb-${t.id}`).checked = t.isSelected;
+                    t.updateUIPlacements(); t.updateVisuals(); tracks.push(t);
                 }
                 
-                if (missing.length) alert("Huomio selainrajoituksista!\nSeuraavia äänitiedostoja ei voitu ladata, koska niitä ei valittu latausikkunassa JSONin lisäksi:\n\n" + missing.join("\n"));
-                refreshTimeline(); setStatus("Projekti ladattu"); e.target.value = '';
+                updateBatchGroupSelect(); updateMuteVisuals(); syncTracksArrayOrder(); refreshTimeline(); updateSelectionCount(); saveState(); e.target.value = '';
             } catch(err) { alert("Virhe ladattaessa: " + err.message); }
         });
 
-        // --- FILE IMPORT (Audio Only) ---
         document.getElementById('fileInput').addEventListener('change', async (e) => {
             if (audioCtx.state === 'suspended') await audioCtx.resume();
             const files = Array.from(e.target.files).filter(f => !f.name.endsWith('.json'));
             if(files.length > 0) {
-                setStatus("Ladataan...", true);
                 setTimeout(async () => {
                     for (let file of files) {
                         try {
-                            const info = await scanWavHeader(file); const ab = await file.arrayBuffer(); const buff = await audioCtx.decodeAudioData(ab);
-                            tracks.push(new Track('t_'+Date.now()+Math.random(), file, buff, info));
+                            const ab = await file.arrayBuffer(); const buff = await audioCtx.decodeAudioData(ab);
+                            const id = 't_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                            const t = new Track(id, file, buff, file.name);
+                            masterTrackPool.set(t.id, t); tracks.push(t); masterArea.appendChild(t.DOM); t.updateUIPlacements();
                         } catch(err) {}
                     }
-                    e.target.value = ''; setStatus("Valmis");
+                    syncTracksArrayOrder(); updateBatchGroupSelect(); saveState(); e.target.value = ''; 
                 }, 50);
             }
         });
 
-        // --- EXPORT ---
-        function openExportModal() {
-            if (!tracks.length) return alert("Ei raitoja.");
-            document.getElementById('exportStart').value = 0; document.getElementById('exportEnd').value = getProjectDuration().toFixed(2);
-            document.getElementById('exportModal').classList.add('active');
-        }
+        function openExportModal() { if (!tracks.length) return alert("Ei raitoja."); document.getElementById('exportStart').value = 0; document.getElementById('exportEnd').value = getProjectDuration().toFixed(2); document.getElementById('exportModal').classList.add('active'); }
         function closeExportModal() { document.getElementById('exportModal').classList.remove('active'); }
         function setFullExportRange() { document.getElementById('exportStart').value = 0; document.getElementById('exportEnd').value = getProjectDuration().toFixed(2); }
         
         async function executeExport() {
             const start = parseFloat(document.getElementById('exportStart').value); const end = parseFloat(document.getElementById('exportEnd').value);
-            if (end <= start) return alert("Virheellinen pituus."); closeExportModal(); setStatus("Renderöidään...", true);
-            
+            if (end <= start) return alert("Virheellinen pituus."); closeExportModal(); 
             setTimeout(async () => {
                 const dur = end - start; const offCtx = new OfflineAudioContext(2, dur * 44100, 44100);
-                const bus = offCtx.createGain();
-                buildFXChain(offCtx, bus, offCtx.destination, masterFX, null);
+                const bus = offCtx.createGain(); buildFXChain(offCtx, bus, offCtx.destination, masterFX, null);
+                const groupBusses = {}; groups.forEach(g => { const inNode = offCtx.createGain(); const nodes = buildFXChain(offCtx, inNode, bus, g.fx, null); nodes.outGain.gain.value = g.isMuted ? 0 : g.fx.vol; groupBusses[g.id] = inNode; });
 
                 tracks.forEach(t => {
-                    const aStart = t.startTimeOffset + t.trimStart; const aEnd = t.startTimeOffset + t.trimEnd;
-                    const rStart = aStart - start;
-                    if (rStart >= 0 && rStart < dur) { const pDur = Math.min(aEnd - aStart, dur - rStart); t.play(offCtx, bus, rStart, t.trimStart, pDur); } 
-                    else if (rStart < 0 && (aEnd - start) > 0) { const offShift = Math.abs(rStart); const pDur = Math.min((aEnd - start), dur); t.play(offCtx, bus, 0, t.trimStart + offShift, pDur); }
+                    const aStart = t.startTimeOffset + t.trimStart; const aEnd = t.startTimeOffset + t.trimEnd; const rStart = aStart - start;
+                    const dest = t.groupId && groupBusses[t.groupId] ? groupBusses[t.groupId] : bus;
+                    if (rStart >= 0 && rStart < dur) { const pDur = Math.min(aEnd - aStart, dur - rStart); t.play(offCtx, dest, rStart, t.trimStart, pDur); } 
+                    else if (rStart < 0 && (aEnd - start) > 0) { const offShift = Math.abs(rStart); const pDur = Math.min((aEnd - start), dur); t.play(offCtx, dest, 0, t.trimStart + offShift, pDur); }
                 });
+                
                 const buf = await offCtx.startRendering(); const wav = bufferToWave(buf, buf.length);
-                const a = document.createElement('a'); a.href = URL.createObjectURL(wav); a.download = 'mix.wav'; a.click(); setStatus("Valmis");
+                const a = document.createElement('a'); a.href = URL.createObjectURL(wav); a.download = 'mix.wav'; a.click(); 
             }, 50);
         }
 
@@ -818,6 +1133,10 @@
             while(pos < length) { for(i=0; i<numOfChan; i++) { let s = Math.max(-1, Math.min(1, channels[i][offset] || 0)); s = (s<0?s*32768:s*32767)|0; view.setInt16(pos, s, true); pos+=2; } offset++; }
             return new Blob([buffer], {type: "audio/wav"});
         }
+
+        saveState();
+        updateUndoRedoButtons();
+        updateSelectionCount();
     </script>
 </body>
 </html>
