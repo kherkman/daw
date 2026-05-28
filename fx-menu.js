@@ -372,17 +372,23 @@
                 dropdown.innerHTML = optionsHTML;
                 
                 dropdown.addEventListener('change', async (e) => {
-                    const fileName = e.target.value; if (!fileName) return;
+                    const fileName = e.target.value; 
+                    if (!fileName) return;
                     try { 
                         let scriptText;
                         if (window.localFxCache && window.localFxCache.has(fileName)) {
                             scriptText = window.localFxCache.get(fileName);
                         } else {
-                            const response = `fs/${filename}`; 
-                            if (!response.ok) throw new Error("Tiedostoa ei löytynyt. Lataa efektikirjaston .js -tiedostot yhdestä kansiosta."); 
+                            const response = await fetch(`fx/${fileName}`);  
+                            if (!response.ok) throw new Error(`Tiedostoa ei löytynyt: ${fileName}`); 
                             scriptText = await response.text(); 
                         }
-                        if(window.instantiateCustomFX) window.instantiateCustomFX(scriptText, fileName, null, customArr, customDom, () => { onUpdate(); if(window.saveState) window.saveState(); }); 
+                        if(window.instantiateCustomFX) {
+                            window.instantiateCustomFX(scriptText, fileName, null, customArr, customDom, () => { 
+                                onUpdate(); 
+                                if(window.saveState) window.saveState(); 
+                            }); 
+                        }
                     } catch (err) { 
                         alert("Virhe:\n" + err.message + "\n\nAvataan tiedostonvalinta. Valitse haluamasi efektikirjaston tiedostot (voit valita kaikki kerralla)."); 
                         
