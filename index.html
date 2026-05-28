@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Web Audio DAW</title>
+    
+    <!-- Tyylitiedosto -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Ulkoiset kirjastot ja skriptit -->
+    <script src="midiexport.js"></script>
+    <script src="fx-menu.js"></script>
+</head>
+<body>
+
+    <div id="drag-overlay"><span>Pudota audio- tai MIDI-tiedostot tähän</span></div>
+
+    <div class="toolbar">
+        <!-- Hotkeys Toggle -->
+        <button id="hotkeysBtn" onclick="toggleHotkeys()" class="primary">Hotkeys: ON</button>
+        <div class="toolbar-divider"></div>
+
+        <button onclick="undo()" id="btnUndo">Undo</button>
+        <button onclick="redo()" id="btnRedo">Redo</button>
+        <button onclick="openInfoModal()" class="primary" style="background:#2196f3; border-color:#1976d2;">Info</button>
+        
+        <div class="toolbar-divider"></div>
+
+        <button onclick="togglePlay()" id="playBtn" class="primary" style="background:#4caf50; border-color:#388e3c; font-weight:bold; font-size:1.1rem; padding:4px 16px;">Play</button>
+        <button onclick="stop(false); toBeginning();" id="btnStop">Stop</button>
+        <button onclick="toBeginning()">|&lt; (W)</button>
+        <button onclick="goToEnd()">&gt;| (End)</button>
+        <button onclick="addMarker()" class="primary" style="background:#ff9800; border-color:#e65100; color:#000; font-weight:bold;">Mark</button>
+        <div class="time-display-container" id="timeDisplay">00:00:00</div>
+        
+        <button id="repeatBtn" onclick="toggleRepeat()">Repeat: OFF</button>
+        <button id="recBtn" onclick="toggleRecord()">Rec (R)</button>
+        <button id="recFxBtn" onclick="openRecFX()">Rec FX</button>
+        
+        <div class="toolbar-divider"></div>
+
+        <label class="file-upload-label">+ Audio<input type="file" id="fileInput" multiple accept="audio/*"></label>
+        <button onclick="createMidiTrack()" class="primary" style="background:#4caf50;">+ MIDI Null</button>
+        <label class="file-upload-label" style="background:#4caf50; border-color:#4caf50;">+ MIDI File<input type="file" id="midiFileInput" multiple accept=".mid,.midi"></label>
+        <button onclick="createGroup()" class="primary">+ Ryhmä</button>
+
+        <div class="toolbar-divider"></div>
+
+        <label class="input-label" style="gap:2px;">
+            BPM: <input type="number" id="bpmInput" class="bpm-input" value="120" min="30" max="300" onchange="updateGrid()">
+            <button onclick="tapTempo()" style="background:#555; padding:2px 5px; margin-left:4px; height:24px; font-size:0.7rem;">Tap</button>
+        </label>
+        
+        <button id="snapBtn" onclick="toggleSnap()">Snap: OFF</button>
+        <label class="input-label">Tahti: <input type="number" id="tsInput" class="bpm-input" value="4" min="1" max="16" onchange="updateGrid()" title="Iskuja per tahti (esim. 4/4 tahti = 4)"></label>
+        <button id="metroBtn" onclick="toggleMetronome()">Metro (M)</button>
+
+        <div id="zoomXContainer" style="display:flex; align-items:center;"></div>
+        <div id="zoomYContainer" style="display:flex; align-items:center;"></div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="batch-tools">
+            <span class="batch-label" id="selectionCountLabel">Valitut: 0 kpl</span>
+            <button onclick="toggleSelectAll()">Kaikki / Ei mitään</button>
+            <select id="batchGroupSelect" class="input-label" onchange="batchAssignGroup(this.value); this.value='';">
+                <option value="">-- Siirrä ryhmään --</option>
+                <option value="ROOT">Poista ryhmästä (Juuri)</option>
+            </select>
+            <button onclick="batchMoveUp()">↑ Ylös</button>
+            <button onclick="batchMoveDown()">↓ Alas</button>
+            <button onclick="batchMuteToggle()">Mute / Unmute</button>
+            <button onclick="batchDelete()" style="background:#000000; border-color:#af1a1a;" title="Voit painaa myös Delete">Poista</button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <button onclick="openMasterFX()">Master FX</button>
+        <button onclick="openExportModal()" class="primary">Export WAV</button>
+        <button onclick="exportAllMidi()" class="primary" style="background:#9c27b0; border-color:#7b1fa2;">Export All MIDI</button>
+        <button onclick="saveProject()">Save Project</button>
+        
+        <button onclick="initiateProjectLoad()" class="primary" style="background:transparent; border-color:var(--accent); color:var(--accent);">Load Project</button>
+        <input type="file" id="loadInputFallback" multiple accept=".json,audio/*,.js" style="display:none;">
+        
+        <div class="meter-container" style="width:100px; margin-left:auto;">
+            <span class="meter-label">Master L/R</span>
+            <canvas id="masterMeterL" class="vu-meter" style="height:4px;"></canvas>
+            <canvas id="masterMeterR" class="vu-meter" style="height:4px; margin-top:2px;"></canvas>
+        </div>
+    </div>
+
+    <div id="timeline-container">
+        <canvas id="rulerCanvas" height="24"></canvas>
+        <div id="marker-container"></div>
+        <div id="loop-container">
+            <div id="loop-overlay"></div>
+            <div id="loop-start" class="loop-marker"></div>
+            <div id="loop-end" class="loop-marker"></div>
+        </div>
+        <div id="playhead-container"><div id="playhead"></div></div>
+        <div id="tracks-area" style="min-width: 2000px;"></div>
+    </div>
+
+    <!-- Modals -->
+    <div id="infoModal" class="modal">
+        <div class="modal-wrapper">
+            <h3 style="margin:0 0 15px 0; color:white;">Tietoa & Pikanäppäimet</h3>
+            <div id="infoContent" style="flex-grow:1; overflow-y:auto; color:#ccc; font-size:0.9rem; padding-right:10px; background:#222; padding:15px; border-radius:5px; border:1px solid #444;">
+                Ladataan ohjeita...
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:15px;">
+                <button onclick="document.getElementById('infoModal').classList.remove('active')" class="primary">Sulje</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Marker Modal -->
+    <div id="markerModal" class="modal">
+        <div class="modal-wrapper modal-small">
+            <h3 style="margin:0 0 20px 0; color:white;" id="markerModalTitle">Merkki</h3>
+            <div class="settings-row" style="flex-direction:column; align-items:flex-start;">
+                <div class="control-group" style="width:100%; align-items:flex-start;">
+                    <label style="color:#aaa; font-size:0.8rem; margin-bottom:5px;">Nimi</label>
+                    <input type="text" id="markerName" style="width:100%; background:#111; color:white; padding:8px; border:1px solid #555; border-radius:4px; box-sizing:border-box;">
+                </div>
+                <div class="control-group" style="width:100%; margin-top:10px; align-items:flex-start;">
+                    <label style="color:#aaa; font-size:0.8rem; margin-bottom:5px;">Tempo (BPM) - Jätä tyhjäksi jos ei muutosta</label>
+                    <input type="number" id="markerTempo" min="30" max="300" style="width:100%; background:#111; color:white; padding:8px; border:1px solid #555; border-radius:4px; box-sizing:border-box;">
+                </div>
+                <div class="control-group" style="width:100%; margin-top:10px; align-items:flex-start;">
+                    <label style="color:#aaa; font-size:0.8rem; margin-bottom:5px;">Tempo Change Time (s) - Fade aika</label>
+                    <input type="number" id="markerTempoFade" min="0" step="0.1" value="0" style="width:100%; background:#111; color:white; padding:8px; border:1px solid #555; border-radius:4px; box-sizing:border-box;">
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; justify-content: flex-end; margin-top:20px; width:100%;">
+                <button id="btnDeleteMarker" style="background:#d32f2f; border-color:#b71c1c; display:none;" onclick="deleteCurrentMarker()">Poista Merkki</button>
+                <div style="flex-grow:1;"></div>
+                <button onclick="closeMarkerModal()">Peruuta</button>
+                <button onclick="saveMarker()" class="primary">Tallenna</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="eqModal" class="modal">
+        <div class="modal-wrapper">
+            <div class="modal-content" id="trackFxContent"></div>
+            <div class="modal-scroll-track"><input type="range" id="modalScrollSlider" min="0" max="100" value="0" step="1"></div>
+        </div>
+    </div>
+    <div id="fxModal" class="modal">
+        <div class="modal-wrapper">
+            <div class="modal-content" id="genericFxContent"></div>
+            <div class="modal-scroll-track"><input type="range" id="fxScrollSlider" min="0" max="100" value="0" step="1"></div>
+        </div>
+    </div>
+    <div id="exportModal" class="modal">
+        <div class="modal-wrapper modal-small">
+            <h3 style="margin:0 0 20px 0; color:white;">Vie projekti (Export WAV)</h3>
+            <div class="settings-row">
+                <div class="control-group"><label>Alku (s)</label><input type="number" id="exportStart" min="0" step="0.1" value="0"></div>
+                <div class="control-group"><label>Loppu (s)</label><input type="number" id="exportEnd" min="0" step="0.1" value="0"></div>
+            </div>
+            <div style="display:flex; justify-content:center; margin: 15px 0;"><button onclick="setFullExportRange()">Koko projekti</button></div>
+            <div style="display:flex; gap:10px; justify-content: flex-end; margin-top:auto;"><button onclick="closeExportModal()">Peruuta</button><button onclick="executeExport()" class="primary">Vie (WAV)</button></div>
+        </div>
+    </div>
+
+    <div id="resourceModal" class="modal">
+        <div class="modal-wrapper modal-small">
+            <h3 style="margin:0 0 10px 0; color:white;">Projektin resurssit</h3>
+            <p style="font-size: 0.8rem; color: #aaa; margin-top: 0;">Lataa puuttuvat tiedostot uudelleen koneeltasi.</p>
+            <div class="resource-list" id="resListAudio"></div>
+            <div class="resource-list" id="resListJs"></div>
+            <label class="btn file-upload-label" style="text-align:center; margin-bottom: 15px;">
+                Etsi puuttuvat... <input type="file" multiple accept="audio/*,.js" id="missingFilesInput">
+            </label>
+            <div style="display:flex; gap:10px; justify-content: flex-end; margin-top:auto;">
+                <button onclick="cancelProjectLoad()">Peruuta</button>
+                <button id="btnConfirmLoad" class="primary" disabled>Avaa projekti</button>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:none;">
+        <canvas id="micMeter" class="vu-meter"></canvas>
+        <span id="statusText">Valmis</span>
+    </div>
+
+    <script src="fx-list.js"></script>
+    <script src="midi.js"></script>
+    <script src="playbackrate.js"></script>
+    <script src="info.js"></script>
+    <script src="audio-engine.js"></script>
+    <script src="tracks.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
