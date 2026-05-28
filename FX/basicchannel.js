@@ -1,5 +1,5 @@
-// basic.js
-window.CustomAudioEffect = class BasicEffect {
+// basicchannel.js
+window.CustomAudioEffect = class BasicChannelEffect {
     constructor(audioCtx) {
         this.ctx = audioCtx;
         this.input = audioCtx.createGain();
