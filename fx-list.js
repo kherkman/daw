@@ -8,7 +8,7 @@
     // Kaikki liitteenä olevat efektit on lisätty tähän luetteloon aakkosjärjestyksessä.
     
     const pluginList = [
-        { name: "Basic Channel (EQ/Pan/Vol)", file: "basic.js" },
+        { name: "Basic Channel (EQ/Pan/Vol)", file: "basicchannel.js" },
         { name: "Signal Flow Router", file: "signalflow.js" },
         { name: "EQ", file: "eq.js" },
         { name: "Dynamics (Comp/Limit/Gate)", file: "limit-comp-gate.js" },
