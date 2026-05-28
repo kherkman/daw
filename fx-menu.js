@@ -379,7 +379,7 @@
                         if (window.localFxCache && window.localFxCache.has(fileName)) {
                             scriptText = window.localFxCache.get(fileName);
                         } else {
-                            const response = await fetch(`fx/${fileName}`);  
+                            const response = await fetch(`FX/${fileName}`);  
                             if (!response.ok) throw new Error(`Tiedostoa ei löytynyt: ${fileName}`); 
                             scriptText = await response.text(); 
                         }
