@@ -153,7 +153,7 @@ window.CustomAudioEffect = class AudioDrumsEffect {
         let presetLoaded = false;
         
         try {
-            const res = await fetch(`${setName}/preset.json`);
+            const res = await fetch(`FX/${setName}/preset.json`);
             if (res.ok) {
                 const preset = await res.json();
                 this.applyPresetData(preset);
