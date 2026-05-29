@@ -55,6 +55,26 @@ window.CustomAudioEffect = class AudioIsomorphicHexEffect {
         this.updateMix();
         this._initWorklet();
         this.initKeyboardListeners();
+        this.loadDefaultSample();
+    }
+
+    async loadDefaultSample() {
+        try {
+            const response = await fetch('PianoC4.wav');
+            if (!response.ok) {
+                console.warn('PianoC4.wav not found, loading from root failed');
+                return;
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            this.pianoBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+            console.log('PianoC4.wav loaded successfully!');
+            if (this.uiElements.loadBtn) {
+                this.uiElements.loadBtn.classList.add('active');
+                this.uiElements.loadBtn.innerText = "WAV LOADED";
+            }
+        } catch (e) {
+            console.error("Failed to load default PianoC4.wav:", e);
+        }
     }
 
     // --- MIDI-OHJAUS (DAW / HOST SISÄÄN) ---
