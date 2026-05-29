@@ -48,7 +48,7 @@ window.CustomAudioEffect = class AudioPianoEffect {
 
     async loadDefaultSample() {
         try {
-            const response = await fetch('/PianoC4.wav');
+            const response = await fetch('PianoC4.wav');
             if (!response.ok) {
                 console.warn('PianoC4.wav not found, loading from root failed');
                 return;
