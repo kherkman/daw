@@ -72,7 +72,7 @@ window.CustomAudioEffect = class AudioMicrotoneEffect {
                 return;
             }
             const arrayBuffer = await response.arrayBuffer();
-            this.pianoBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+            this.sampleBuffer = await this.ctx.decodeAudioData(arrayBuffer);
             console.log('PianoC4.wav loaded successfully!');
             if (this.uiElements.loadBtn) {
                 this.uiElements.loadBtn.classList.add('active');
