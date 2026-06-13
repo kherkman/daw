@@ -59,7 +59,7 @@
                 const sw = ((t.trimEnd - t.trimStart) / rate) * global.PIXELS_PER_SECOND;
                 if(sw > 0) { 
                     try { 
-                        const t_fullPx = (t.buffer.duration / rate) * global.PIXELS_PER_SECOND;
+                        const t_fullPx = ((t.buffer ? t.buffer.duration : 10) / rate) * global.PIXELS_PER_SECOND;
                         const t_scaleX = t.canvas.width / t_fullPx;
                         ctx.drawImage(t.canvas, sx * t_scaleX, 0, sw * t_scaleX, t.canvas.height, (startX + sx) * scaleX, 0, sw * scaleX, this.canvas.height); 
                     } catch(e){} 
@@ -70,15 +70,16 @@
 
     class Track {
         constructor(id, file, buffer, name) {
-            this.id = id; this.file = file; this.buffer = buffer; this.name = name || file.name; this.fileName = file.name; this.isMidi = false;
+            this.id = id; this.file = file; this.buffer = buffer; this.name = name || (file ? file.name : "Audio Raita"); this.fileName = file ? file.name : ""; this.isMidi = false;
             this.fx = global.createDefaultFX(); this.customFX = []; this.customFxDom = document.createElement('div'); this.customFxDom.className = 'custom-fx-list';
             this.fadeIn = 0.0; this.fadeOut = 0.0; this.isMuted = false; this.isSelected = false; this.groupId = null;
-            this.startTimeOffset = 0; this.trimStart = 0; this.trimEnd = buffer.duration;
+            this.startTimeOffset = 0; this.trimStart = 0; this.trimEnd = buffer ? buffer.duration : 10;
             this.liveNodes = null; 
             this.analyserL = global.audioCtx.createAnalyser(); this.analyserL.fftSize = 1024;
             this.analyserR = global.audioCtx.createAnalyser(); this.analyserR.fftSize = 1024;
             this.source = null;
             this.sidechainSource = ""; global.scBusses.set(this.id, global.audioCtx.createGain());
+            this.isMissingAudio = !buffer;
             this.createUI();
         }
         createUI() {
@@ -106,32 +107,94 @@
             this.DOM.querySelector(`#name-input-${this.id}`).onchange = e => { this.name = e.target.value; global.saveState(); };
             this.DOM.querySelector(`#cb-${this.id}`).onchange = e => { this.isSelected = e.target.checked; global.updateSelectionCount(); };
             this.muteBtn = this.DOM.querySelector(`#mute-${this.id}`); this.muteBtn.onclick = () => { this.isMuted = !this.isMuted; global.updateMuteVisuals(); global.saveState(); };
+            
+            if (this.isMissingAudio) {
+                clip.classList.add('missing-audio');
+                clip.title = "Klikkaa tästä ladataksesi puuttuva audiotiedosto uudelleen.";
+            }
+            clip.addEventListener('click', (e) => {
+                if (this.isMissingAudio) {
+                    e.stopPropagation();
+                    this.promptForMissingFile();
+                }
+            });
+            
             this.setupDrag(clip); this.setupTrim(trimL, 'start', clip, maskL); this.setupTrim(trimR, 'end', clip, maskR);
-            this.canvas.width = Math.min(this.buffer.duration * global.PIXELS_PER_SECOND, 32000); 
+            this.canvas.width = Math.min((this.buffer ? this.buffer.duration : 10) * global.PIXELS_PER_SECOND, 32000); 
             this.drawWaveform(this.canvas);
         }
+        
+        promptForMissingFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const ab = await file.arrayBuffer();
+                    const buff = await global.audioCtx.decodeAudioData(ab);
+                    this.buffer = buff;
+                    this.file = file;
+                    this.fileName = file.name;
+                    this.isMissingAudio = false;
+                    
+                    if (window.indexedDB) {
+                        const DB_NAME = "WebAudioDAW_Cache";
+                        const request = indexedDB.open(DB_NAME, 1);
+                        request.onsuccess = (ev) => {
+                            const db = ev.target.result;
+                            const tx = db.transaction("cache", "readwrite");
+                            tx.objectStore("cache").put(file, "audio_" + this.id);
+                        };
+                    }
+                    
+                    const clipEl = this.DOM.querySelector('.audio-clip');
+                    if (clipEl) {
+                        clipEl.classList.remove('missing-audio');
+                        clipEl.title = "";
+                    }
+                    
+                    this.trimEnd = buff.duration;
+                    this.canvas.width = Math.min(this.buffer.duration * global.PIXELS_PER_SECOND, 32000); 
+                    this.drawWaveform(this.canvas);
+                    this.updateUIPlacements();
+                    global.refreshTimeline();
+                    global.saveState();
+                } catch(err) {
+                    alert("Tiedoston lataus epäonnistui: " + err.message);
+                }
+            };
+            input.click();
+        }
+
         updateVisuals() { this.muteBtn.className = 'track-btn mute-btn ' + (this.isMuted ? 'active' : ''); }
         updateUIPlacements() {
             const el = this.DOM.querySelector('.audio-clip'); if(!el) return;
             const rate = (this.fx && this.fx.playbackRate) ? this.fx.playbackRate : 1.0;
+            const dur = this.buffer ? this.buffer.duration : 10;
             
             el.style.left = (this.startTimeOffset * global.PIXELS_PER_SECOND) + 'px'; 
-            el.style.width = ((this.buffer.duration / rate) * global.PIXELS_PER_SECOND) + 'px';
+            el.style.width = ((dur / rate) * global.PIXELS_PER_SECOND) + 'px';
             
             el.querySelector('.trim-mask-left').style.width = ((this.trimStart / rate) * global.PIXELS_PER_SECOND) + 'px'; 
-            el.querySelector('.trim-mask-right').style.width = (((this.buffer.duration - this.trimEnd) / rate) * global.PIXELS_PER_SECOND) + 'px';
+            el.querySelector('.trim-mask-right').style.width = (((dur - this.trimEnd) / rate) * global.PIXELS_PER_SECOND) + 'px';
             
             el.querySelector('.trim-start').style.left = (((this.trimStart / rate) * global.PIXELS_PER_SECOND) - 10) + 'px'; 
-            el.querySelector('.trim-end').style.right = ((((this.buffer.duration - this.trimEnd) / rate) * global.PIXELS_PER_SECOND) - 10) + 'px';
+            el.querySelector('.trim-end').style.right = ((((dur - this.trimEnd) / rate) * global.PIXELS_PER_SECOND) - 10) + 'px';
             
             el.querySelector('.fade-in-overlay').style.width = ((this.fadeIn / rate) * global.PIXELS_PER_SECOND) + 'px'; 
             el.querySelector('.fade-in-overlay').style.left = ((this.trimStart / rate) * global.PIXELS_PER_SECOND) + 'px';
             
             el.querySelector('.fade-out-overlay').style.width = ((this.fadeOut / rate) * global.PIXELS_PER_SECOND) + 'px'; 
-            el.querySelector('.fade-out-overlay').style.right = (((this.buffer.duration - this.trimEnd) / rate) * global.PIXELS_PER_SECOND) + 'px';
+            el.querySelector('.fade-out-overlay').style.right = (((dur - this.trimEnd) / rate) * global.PIXELS_PER_SECOND) + 'px';
         }
         drawWaveform(canvas) {
             const ctx = canvas.getContext('2d'); 
+            if (!this.buffer) {
+                ctx.clearRect(0,0, canvas.width, canvas.height);
+                return;
+            }
             const data = this.buffer.getChannelData(0); 
             const step = Math.ceil(data.length / canvas.width); 
             const centerY = canvas.height / 2;
@@ -152,8 +215,32 @@
             }
         }
         setupDrag(el) { let initLeft; global.addDragListener(el, { onStart: () => { initLeft = el.offsetLeft; }, onMove: (x, dx) => { let l = initLeft + dx; if (global.snapEnabled) { const beatDur = 60 / global.bpm; l = Math.round((l / global.PIXELS_PER_SECOND) / beatDur) * beatDur * global.PIXELS_PER_SECOND; } const rate = (this.fx && this.fx.playbackRate) ? this.fx.playbackRate : 1.0; this.startTimeOffset = Math.max(-(this.trimStart / rate), l / global.PIXELS_PER_SECOND); this.updateUIPlacements(); global.refreshTimeline(); }, onEnd: () => { global.saveState(); } }); }
-        setupTrim(h, type, clip, mask) { global.addDragListener(h, { onMove: (x, dx) => { const rate = (this.fx && this.fx.playbackRate) ? this.fx.playbackRate : 1.0; const rect = clip.getBoundingClientRect(); const lx = x - rect.left; let t = (lx / global.PIXELS_PER_SECOND) * rate; if (t < 0) t = 0; if (t > this.buffer.duration) t = this.buffer.duration; if (type === 'start') { if (t >= this.trimEnd - 0.1) return; if (this.startTimeOffset + (t / rate) < 0) t = -this.startTimeOffset * rate; this.trimStart = t; } else { if (t <= this.trimStart + 0.1) return; this.trimEnd = t; } this.updateUIPlacements(); global.refreshTimeline(); }, onEnd: () => { global.saveState(); } }); }
+        setupTrim(h, type, clip, mask) { 
+            global.addDragListener(h, { 
+                onMove: (x, dx) => { 
+                    const rate = (this.fx && this.fx.playbackRate) ? this.fx.playbackRate : 1.0; 
+                    const rect = clip.getBoundingClientRect(); 
+                    const lx = x - rect.left; 
+                    let t = (lx / global.PIXELS_PER_SECOND) * rate; 
+                    if (t < 0) t = 0; 
+                    const maxDur = this.buffer ? this.buffer.duration : 10;
+                    if (t > maxDur) t = maxDur; 
+                    if (type === 'start') { 
+                        if (t >= this.trimEnd - 0.1) return; 
+                        if (this.startTimeOffset + (t / rate) < 0) t = -this.startTimeOffset * rate; 
+                        this.trimStart = t; 
+                    } else { 
+                        if (t <= this.trimStart + 0.1) return; 
+                        this.trimEnd = t; 
+                    } 
+                    this.updateUIPlacements(); 
+                    global.refreshTimeline(); 
+                }, 
+                onEnd: () => { global.saveState(); } 
+            }); 
+        }
         play(ctx, dest, startWhen, fileOffset, playDur) {
+            if (!this.buffer) return;
             const src = ctx.createBufferSource(); 
             src.buffer = this.buffer; 
             const rate = (this.fx && this.fx.playbackRate) ? this.fx.playbackRate : 1.0;
@@ -208,7 +295,6 @@
             if (!this.customFX || this.customFX.length === 0) return;
             const lastFx = this.customFX[this.customFX.length - 1];
             
-            // Estetään päällekkäiset kuuntelijat
             if (lastFx.sendMidi && lastFx.sendMidi.isDawPatched) return;
             
             const newSendMidi = (msg) => {
@@ -216,11 +302,9 @@
                 const [status, pitch, velocity] = midiData;
                 const type = status & 0xf0;
 
-                // 1. Piano Roll UI käsittely (jos tämä raita on valittu)
                 if (window.pianoRollUI && window.pianoRollUI.activeTrack === this) {
                     window.pianoRollUI.handleGeneratedMidi(midiData);
                 } else {
-                    // 2. Taustasoitto samplerilla (jos raita ei ole aktiivisena käyttöliittymässä)
                     if (type === 0x90 && velocity > 0) {
                         if (global.audioCtx && global.masterBusInput && this.sampler) {
                             let srcInfo = this.sampler.playNote(global.audioCtx, global.masterBusInput, pitch, velocity, global.audioCtx.currentTime, 0, 10);
@@ -235,7 +319,6 @@
                     }
                 }
 
-                // 3. Jaa eteenpäin sidechain-verkostolle (Mahdollistaa äänityksen toiselle raidalle efektin takaa)
                 if (typeof this.broadcastMidi === 'function') {
                     this.broadcastMidi(midiData);
                 }
