@@ -64,12 +64,37 @@ input[type="file"] { display: none; }
 
 #tracks-area { position: relative; min-width: 100%; padding-top: 5px; background-color: var(--track-bg); min-height: 100%; }
 
-.group-container { border: 1px solid #111; margin-bottom: 5px; background: #252525; }
+.group-container { border: none; margin-bottom: 5px; background: #252525; position: relative; }
 .group-header { background: #1a1a1a !important; border-bottom: 2px solid #000; }
-.group-tracks-area { padding-left: 20px; border-left: 2px solid var(--accent); background: #2a2a2a; }
+.group-tracks-area { padding-left: 0; border-left: none; background: transparent; }
+
+/* Ryhmän ja sen alla olevien raitojen control-laatikoiden yhtenäinen rajaviiva */
+.group-container .track-controls {
+    border-left: 2px solid var(--accent) !important;
+    border-right: 2px solid var(--accent) !important;
+    box-sizing: border-box;
+}
+/* Ryhmän yläosan sulkeminen */
+.group-container > .group-header > .track-controls {
+    border-top: 2px solid var(--accent) !important;
+    border-bottom: 2px solid var(--accent) !important;
+}
+/* Ryhmän sisäisten raitojen väliviivat */
+.group-tracks-area .track .track-controls {
+    border-top: none !important;
+    border-bottom: 1px solid rgba(76, 175, 80, 0.3) !important;
+}
+/* Ryhmän pohjan sulkeminen alimman raidan kohdalta */
+.group-tracks-area .track:last-child .track-controls {
+    border-bottom: 2px solid var(--accent) !important;
+}
+/* Ryhmän alla olevien raitojen control-laatikon vaaleampi tausta */
+.group-tracks-area .track-controls {
+    background: #4d4d4d !important;
+}
 
 .track { height: var(--track-height); border-bottom: 1px solid #000; position: relative; display: flex; align-items: center; background: transparent; transition: opacity 0.2s; }
-.track.midi-track { background: rgba(76, 175, 80, 0.05); }
+.track.midi-track { background: transparent; }
 .track-controls { width: var(--control-width); height: 100%; background: #3a3a3a; padding: 5px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; z-index: 90; position: sticky; left: 0; border-right: 2px solid #111; flex-shrink: 0; box-shadow: 2px 0 5px rgba(0,0,0,0.5); justify-content: flex-start; }
 
 .track-name-input { width: 100%; background: #111; border: 1px solid #555; color: white; padding: 4px; border-radius: 3px; font-size: 0.75rem; font-weight: bold; box-sizing: border-box; text-align: center; }
