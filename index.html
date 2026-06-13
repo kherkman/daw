@@ -84,6 +84,9 @@
         <button onclick="initiateProjectLoad()" class="primary" style="background:transparent; border-color:var(--accent); color:var(--accent);">Load Project</button>
         <input type="file" id="loadInputFallback" multiple accept=".json,audio/*,.js" style="display:none;">
         
+        <!-- Reset Everything Button -->
+        <button onclick="resetEverything()" style="background:#000000; border-color:#d32f2f; color:#ff5252; font-weight:bold;" title="Nollaa koko istunnon ja tyhjentää välimuistin">Reset Everything</button>
+
         <div class="meter-container" style="width:100px; margin-left:auto;">
             <span class="meter-label">Master L/R</span>
             <canvas id="masterMeterL" class="vu-meter" style="height:4px;"></canvas>
