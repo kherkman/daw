@@ -29,8 +29,8 @@
 
         <button onclick="togglePlay()" id="playBtn" class="primary" style="background:#4caf50; border-color:#388e3c; font-weight:bold; font-size:1.1rem; padding:4px 16px;">Play</button>
         <button onclick="stop(false); toBeginning();" id="btnStop">Stop</button>
-        <button onclick="toBeginning()">|&lt; (W)</button>
-        <button onclick="goToEnd()">&gt;| (End)</button>
+        <button onclick="toBeginning()">|&lt;</button>
+        <button onclick="goToEnd()">&gt;|</button>
         <button onclick="addMarker()" class="primary" style="background:#ff9800; border-color:#e65100; color:#000; font-weight:bold;">Mark</button>
         <div class="time-display-container" id="timeDisplay">00:00:00</div>
         
@@ -43,7 +43,7 @@
         <label class="file-upload-label">+ Audio<input type="file" id="fileInput" multiple accept="audio/*"></label>
         <button onclick="createMidiTrack()" class="primary" style="background:#4caf50;">+ MIDI Null</button>
         <label class="file-upload-label" style="background:#4caf50; border-color:#4caf50;">+ MIDI File<input type="file" id="midiFileInput" multiple accept=".mid,.midi"></label>
-        <button onclick="createGroup()" class="primary">+ Ryhmä</button>
+        <button onclick="createGroup()" class="primary">+ Group</button>
 
         <div class="toolbar-divider"></div>
 
@@ -53,7 +53,7 @@
         </label>
         
         <button id="snapBtn" onclick="toggleSnap()">Snap: OFF</button>
-        <label class="input-label">Tahti: <input type="number" id="tsInput" class="bpm-input" value="4" min="1" max="16" onchange="updateGrid()" title="Iskuja per tahti (esim. 4/4 tahti = 4)"></label>
+        <label class="input-label">Bar: <input type="number" id="tsInput" class="bpm-input" value="4" min="1" max="16" onchange="updateGrid()" title="Iskuja per tahti (esim. 4/4 tahti = 4)"></label>
         <button id="metroBtn" onclick="toggleMetronome()">Metro (M)</button>
 
         <div id="zoomXContainer" style="display:flex; align-items:center;"></div>
@@ -62,16 +62,17 @@
         <div class="toolbar-divider"></div>
 
         <div class="batch-tools">
-            <span class="batch-label" id="selectionCountLabel">Valitut: 0 kpl</span>
-            <button onclick="toggleSelectAll()">Kaikki / Ei mitään</button>
+            <span class="batch-label" id="selectionCountLabel">Chosen: 0 </span>
+            <button onclick="toggleSelectAll()">All/None</button>
+            <button onclick="batchToggleCollapse()">Group Exp/Col</button>
             <select id="batchGroupSelect" class="input-label" onchange="batchAssignGroup(this.value); this.value='';">
-                <option value="">-- Siirrä ryhmään --</option>
-                <option value="ROOT">Poista ryhmästä (Juuri)</option>
+                <option value="">Move to Group</option>
+                <option value="ROOT">Move to Root</option>
             </select>
-            <button onclick="batchMoveUp()">↑ Ylös</button>
-            <button onclick="batchMoveDown()">↓ Alas</button>
+            <button onclick="batchMoveUp()">↑</button>
+            <button onclick="batchMoveDown()">↓</button>
             <button onclick="batchMuteToggle()">Mute / Unmute</button>
-            <button onclick="batchDelete()" style="background:#000000; border-color:#af1a1a;" title="Voit painaa myös Delete">Poista</button>
+            <button onclick="batchDelete()" style="background:#000000; border-color:#af1a1a;" title="Voit painaa myös Delete">Delete</button>
         </div>
 
         <div class="toolbar-divider"></div>
