@@ -73,7 +73,6 @@
     const micAnalyser = audioCtx.createAnalyser(); micAnalyser.fftSize = 1024;
     let micStreamSource = null;
 
-    // Kun solmut on luotu, alustetaan masterketju
     if (typeof global.rebuildMasterGraph === 'function') {
         global.rebuildMasterGraph();
     }
@@ -158,7 +157,6 @@
         }
     }
 
-    // UI Nuppien luontifunktio X ja Y zoomeille
     function createUIKnob(containerId, labelText, min, max, value, step, displayFormatter, onChangeCallback) {
         const container = document.getElementById(containerId);
         if (!container) return null;
@@ -296,7 +294,7 @@
 
     function updateSelectionCount() {
         const count = global.tracks.filter(t => t.isSelected).length + global.groups.filter(g => g.isSelected).length;
-        const label = document.getElementById('selectionCountLabel'); if(label) label.innerText = `Valitut: ${count} kpl`;
+        const label = document.getElementById('selectionCountLabel'); if(label) label.innerText = `Chosen: ${count} `;
     }
     global.updateSelectionCount = updateSelectionCount;
 
@@ -331,7 +329,6 @@
                     const t = new global.Track(id, file, buff, file.name); masterTrackPool.set(t.id, t); 
                     global.tracks.push(t); masterArea.appendChild(t.DOM); t.updateUIPlacements();
                     
-                    // Tallenna audiotiedoston data välimuistiin
                     await dbSet("audio_" + t.id, file);
                 } catch(err) { console.error("Tiedoston avaus epäonnistui", file.name); }
             }
@@ -388,7 +385,7 @@
                     base.automation = t.automation ? JSON.parse(JSON.stringify(t.automation)) : { pitch: [], mod: [], pan: [] };
                     base.startTimeOffset = t.startTimeOffset; base.trimStart = t.trimStart; base.trimEnd = t.trimEnd; base.contentDuration = t.contentDuration;
                     if(t.sampler) base.baseNote = t.sampler.baseNote;
-                    base.midiInputSource = t.midiInputSource || ""; // Sidechain-tila
+                    base.midiInputSource = t.midiInputSource || ""; 
                 } else { 
                     base.fileName = t.fileName; base.startTimeOffset = t.startTimeOffset; base.trimStart = t.trimStart; base.trimEnd = t.trimEnd; base.fadeIn = t.fadeIn; base.fadeOut = t.fadeOut; 
                 }
@@ -405,7 +402,6 @@
         redoStack = []; 
         updateUndoRedoButtons(); 
         
-        // Auto-save the JSON state to IndexedDB
         dbSet("projectState", snap).catch(err => console.error("Auto-save failed:", err));
     }
     global.saveState = saveState; 
@@ -441,14 +437,27 @@
 
         snap.tracks.forEach(tData => {
             let t = masterTrackPool.get(tData.id); 
-            if(!t) { if(tData.isMidi) { t = new global.MidiTrack(tData.id || 'm_'+Date.now(), tData.name); masterTrackPool.set(t.id, t); } else return; }
+            if(!t) { 
+                if(tData.isMidi) { 
+                    t = new global.MidiTrack(tData.id || 'm_'+Date.now(), tData.name); 
+                    masterTrackPool.set(t.id, t); 
+                } else {
+                    t = new global.Track(tData.id || 't_'+Date.now(), {name: tData.fileName || tData.name}, null, tData.name);
+                    t.isMissingAudio = true;
+                    const clipEl = t.DOM.querySelector('.audio-clip');
+                    if (clipEl) {
+                        clipEl.classList.add('missing-audio');
+                    }
+                    masterTrackPool.set(t.id, t);
+                } 
+            }
             t.name = tData.name; t.fx = tData.fx; t.isMuted = tData.isMuted; t.isSelected = tData.isSelected; t.groupId = tData.groupId; t.sidechainSource = tData.sidechainSource || "";
             if(t.isMidi) { 
                 t.notes = tData.notes || [];
                 t.automation = tData.automation || { pitch: [], mod: [], pan: [] };
                 t.startTimeOffset = tData.startTimeOffset || 0; t.trimStart = tData.trimStart || 0; t.trimEnd = tData.trimEnd || 4; t.contentDuration = tData.contentDuration || 4;
                 if(tData.baseNote !== undefined) t.sampler.baseNote = tData.baseNote;
-                t.midiInputSource = tData.midiInputSource || ""; // Sidechain-tila
+                t.midiInputSource = tData.midiInputSource || ""; 
             } else { 
                 t.startTimeOffset = tData.startTimeOffset; t.trimStart = tData.trimStart; t.trimEnd = tData.trimEnd; t.fadeIn = tData.fadeIn; t.fadeOut = tData.fadeOut; 
             }
@@ -605,7 +614,7 @@
     function updateResourceUI() {
         const listAudio = document.getElementById('resListAudio'); const listJs = document.getElementById('resListJs'); listAudio.innerHTML = ''; listJs.innerHTML = ''; let allAudioFound = true;
         requiredAudio.forEach(fName => { const isFound = availableFiles.has(fName); if(!isFound) allAudioFound = false; listAudio.innerHTML += `<div class="res-item"><span>${fName}</span><span class="res-status ${isFound ? 'res-found' : 'res-missing'}">${isFound ? 'OK' : 'Puuttuu'}</span></div>`; });
-        requiredJS.forEach(fName => { const isOverridden = availableFiles.has(fName); listJs.innerHTML += `<div class="res-item"><span>${fName}</span><span class="res-status ${isFound ? 'res-found' : 'res-bundled'}">${isOverridden ? 'Korvattu uudemmalla' : 'Projektista'}</span></div>`; });
+        requiredJS.forEach(fName => { const isOverridden = availableFiles.has(fName); const isFound = availableFiles.has(fName); listJs.innerHTML += `<div class="res-item"><span>${fName}</span><span class="res-status ${isFound ? 'res-found' : 'res-bundled'}">${isOverridden ? 'Korvattu uudemmalla' : 'Projektista'}</span></div>`; });
         if (requiredAudio.size === 0) { listAudio.innerHTML += '<div>(Ei audioraitoja)</div>'; } if (requiredJS.size === 0) { listJs.innerHTML += '<div>(Ei JS-liitännäisiä)</div>'; }
         document.getElementById('btnConfirmLoad').disabled = !allAudioFound;
     }
@@ -680,36 +689,62 @@
             }
 
             for (let tData of proj.tracks) {
-                let t;
-                if(tData.isMidi) {
-                    t = new global.MidiTrack(tData.id || 'm_'+Date.now(), tData.name); 
-                    t.notes = tData.notes || []; 
-                    t.automation = tData.automation || { pitch: [], mod: [], pan: [] };
-                    t.startTimeOffset = tData.startTimeOffset || 0;
-                    t.trimStart = tData.trimStart || 0; t.trimEnd = tData.trimEnd || 4; t.contentDuration = tData.contentDuration || 4;
-                    if(tData.baseNote !== undefined) t.sampler.baseNote = tData.baseNote;
-                    t.midiInputSource = tData.midiInputSource || ""; // Sidechain-tila
-                } else {
-                    const audioFile = availableFiles.get(tData.fileName || tData.name);
-                    if (!audioFile) continue; 
-                    const ab = await audioFile.arrayBuffer(); 
-                    const buff = await audioCtx.decodeAudioData(ab);
-                    t = new global.Track(tData.id || 't_'+Date.now(), audioFile, buff, tData.name);
-                    t.startTimeOffset = tData.startTimeOffset; t.trimStart = tData.trimStart; t.trimEnd = tData.trimEnd; t.fadeIn = tData.fadeIn || 0; t.fadeOut = tData.fadeOut || 0;
-                }
-                
-                t.fx = tData.fx; t.isMuted = tData.isMuted; t.isSelected = tData.isSelected; t.sidechainSource = tData.sidechainSource || "";
-                if(tData.customFX) { 
-                    for (let fxD of tData.customFX) { 
-                        let script = await getScriptTextForLoad(fxD);
-                        if (typeof global.instantiateCustomFX === 'function') {
-                            global.instantiateCustomFX(script, fxD.fileName, fxD.state, t.customFX, t.customFxDom, () => {if(isPlaying)play();}); 
+                try {
+                    let t;
+                    if(tData.isMidi) {
+                        t = new global.MidiTrack(tData.id || 'm_'+Date.now(), tData.name); 
+                        t.notes = tData.notes || []; 
+                        t.automation = tData.automation || { pitch: [], mod: [], pan: [] };
+                        t.startTimeOffset = tData.startTimeOffset || 0;
+                        t.trimStart = tData.trimStart || 0; t.trimEnd = tData.trimEnd || 4; t.contentDuration = tData.contentDuration || 4;
+                        if(tData.baseNote !== undefined) t.sampler.baseNote = tData.baseNote;
+                        t.midiInputSource = tData.midiInputSource || ""; 
+                    } else {
+                        const audioFile = availableFiles.get(tData.fileName || tData.name);
+                        let buff = null;
+                        let isMissing = true;
+                        if (audioFile) {
+                            try {
+                                const ab = await audioFile.arrayBuffer(); 
+                                buff = await audioCtx.decodeAudioData(ab);
+                                isMissing = false;
+                            } catch(decodeErr) {
+                                console.error("Decoding failed for " + tData.name, decodeErr);
+                            }
                         }
-                    } 
+                        
+                        t = new global.Track(tData.id || 't_'+Date.now(), audioFile || {name: tData.fileName || tData.name}, buff, tData.name);
+                        t.startTimeOffset = tData.startTimeOffset || 0; 
+                        t.trimStart = tData.trimStart || 0; 
+                        t.trimEnd = tData.trimEnd || (buff ? buff.duration : 10); 
+                        t.fadeIn = tData.fadeIn || 0; 
+                        t.fadeOut = tData.fadeOut || 0;
+
+                        if (isMissing) {
+                            t.isMissingAudio = true;
+                            const clipEl = t.DOM.querySelector('.audio-clip');
+                            if (clipEl) {
+                                clipEl.classList.add('missing-audio');
+                                clipEl.title = "Puuttuva audio. Klikkaa tästä ladataksesi tiedosto uudelleen.";
+                            }
+                        }
+                    }
+                    
+                    t.fx = tData.fx; t.isMuted = tData.isMuted; t.isSelected = tData.isSelected; t.sidechainSource = tData.sidechainSource || "";
+                    if(tData.customFX) { 
+                        for (let fxD of tData.customFX) { 
+                            let script = await getScriptTextForLoad(fxD);
+                            if (typeof global.instantiateCustomFX === 'function') {
+                                global.instantiateCustomFX(script, fxD.fileName, fxD.state, t.customFX, t.customFxDom, () => {if(isPlaying)play();}); 
+                            }
+                        } 
+                    }
+                    masterTrackPool.set(t.id, t); 
+                    if(tData.groupId && masterGroupPool.has(tData.groupId)) { t.groupId = tData.groupId; document.getElementById(`group-tracks-${t.groupId}`).appendChild(t.DOM); } else { masterArea.appendChild(t.DOM); }
+                    t.DOM.querySelector(`#cb-${t.id}`).checked = t.isSelected; t.updateUIPlacements(); t.updateVisuals(); global.tracks.push(t);
+                } catch(trackErr) {
+                    console.error("Yksittäisen raidan lataaminen epäonnistui:", tData, trackErr);
                 }
-                masterTrackPool.set(t.id, t); 
-                if(tData.groupId && masterGroupPool.has(tData.groupId)) { t.groupId = tData.groupId; document.getElementById(`group-tracks-${t.groupId}`).appendChild(t.DOM); } else { masterArea.appendChild(t.DOM); }
-                t.DOM.querySelector(`#cb-${t.id}`).checked = t.isSelected; t.updateUIPlacements(); t.updateVisuals(); global.tracks.push(t);
             }
             updateBatchGroupSelect(); updateMuteVisuals(); syncTracksArrayOrder(); refreshTimeline(); updateSelectionCount(); saveState(); 
         } catch(err) { 
@@ -734,13 +769,13 @@
             g.customFX.forEach(fx => { if(typeof fx.destroy === 'function') fx.destroy(); }); 
             g.DOM.remove(); 
             window.scBusses.delete(g.id); 
-            dbDelete("audio_" + g.id).catch(()=>{}); // Poistetaan välimuistista
+            dbDelete("audio_" + g.id).catch(()=>{}); 
         }); 
         global.tracks.filter(t=>t.isSelected).forEach(t => { 
             t.customFX.forEach(fx => { if(typeof fx.destroy === 'function') fx.destroy(); }); 
             t.DOM.remove(); 
             window.scBusses.delete(t.id); 
-            dbDelete("audio_" + t.id).catch(()=>{}); // Poistetaan välimuistista
+            dbDelete("audio_" + t.id).catch(()=>{}); 
         }); 
         syncTracksArrayOrder(); 
         updateBatchGroupSelect(); 
@@ -763,11 +798,10 @@
             t = new global.MidiTrack(newId, org.name+" (Kopio)"); t.notes = JSON.parse(JSON.stringify(org.notes)); t.sampler.samples = org.sampler.samples; t.sampler.baseNote = org.sampler.baseNote;
             t.automation = JSON.parse(JSON.stringify(org.automation));
             t.startTimeOffset = org.startTimeOffset; t.trimStart = org.trimStart; t.trimEnd = org.trimEnd; t.contentDuration = org.contentDuration;
-            t.midiInputSource = org.midiInputSource || ""; // Sidechain-tila
+            t.midiInputSource = org.midiInputSource || ""; 
         } else {
             t = new global.Track(newId, {name:org.fileName}, org.buffer, org.name+" (Kopio)"); t.startTimeOffset=org.startTimeOffset; t.trimStart=org.trimStart; t.trimEnd=org.trimEnd; t.fadeIn=org.fadeIn; t.fadeOut=org.fadeOut;
             
-            // Kopioidaan audiotiedoston data välimuistiin
             dbGet("audio_" + org.id).then(blob => {
                 if (blob) dbSet("audio_" + t.id, blob);
             }).catch(e => console.error(e));
@@ -813,7 +847,7 @@
             if(t.isMidi) {
                 t.drawNotes(); 
             } else {
-                t.canvas.width = Math.min(t.buffer.duration * global.PIXELS_PER_SECOND, 32000);
+                t.canvas.width = Math.min((t.buffer ? t.buffer.duration : 10) * global.PIXELS_PER_SECOND, 32000);
                 t.drawWaveform(t.canvas);
             }
         }); 
@@ -1192,7 +1226,6 @@
                     const tName = `Äänitys ${new Date().toLocaleTimeString('fi-FI')}`;
                     const tId = 't_' + Date.now();
                     
-                    // Convert raw audio to standard file structure
                     const dummyFile = new File([recordedBlob], tName + ".wav", { type: recordedBlob.type });
                     const t = new global.Track(tId, dummyFile, audioBuffer, tName); 
                     t.startTimeOffset = recordStartTime; 
@@ -1207,7 +1240,6 @@
                     masterTrackPool.set(t.id, t); 
                     global.tracks.push(t); masterArea.appendChild(t.DOM); t.updateUIPlacements(); 
                     
-                    // Tallenna äänitys IndexedDB cacheen
                     await dbSet("audio_" + t.id, dummyFile);
                     
                     syncTracksArrayOrder(); refreshTimeline(); saveState(); 
@@ -1398,7 +1430,6 @@
                     setTimeout(() => {
                         if (!isPlaying) return;
                         
-                        // Varmistetaan FX-reititys aina ennen viestin käsittelyä
                         if (typeof t.patchFxChain === 'function') t.patchFxChain();
 
                         let midiHandled = false;
@@ -1412,7 +1443,6 @@
                             }
                         }
                         
-                        // Jos MIDIä ei napattu yhdellekään efektille (tai efektejä ei ole), lähetetään se suoraan ulos sidechainia varten
                         if (!midiHandled) {
                             if (typeof t.broadcastMidi === 'function') {
                                 t.broadcastMidi(ev.msg);
@@ -1486,7 +1516,7 @@
                 if(end > max) max = end; 
             } else { 
                 const rate = (t.fx && t.fx.playbackRate) ? t.fx.playbackRate : 1.0;
-                const end = t.startTimeOffset + (t.buffer.duration / rate); 
+                const end = t.startTimeOffset + ((t.buffer ? t.buffer.duration : 10) / rate); 
                 if(end > max) max = end; 
             } 
         }); 
@@ -1510,24 +1540,23 @@
         
         const scaleX = cw / w;
 
-        // Dynaaminen skaalaus zoomin perusteella
         let step = 1;
         let subStep = 0.5;
 
         if (global.PIXELS_PER_SECOND <= 3) {
-            step = 60; // 1 minuutti
+            step = 60; 
             subStep = 15;
         } else if (global.PIXELS_PER_SECOND <= 8) {
-            step = 30; // 30 sekuntia
+            step = 30; 
             subStep = 10;
         } else if (global.PIXELS_PER_SECOND <= 15) {
-            step = 10; // 10 sekuntia
+            step = 10; 
             subStep = 5;
         } else if (global.PIXELS_PER_SECOND <= 30) {
-            step = 5;  // 5 sekuntia
+            step = 5;  
             subStep = 1;
         } else {
-            step = 1;  // 1 sekunti
+            step = 1;  
             subStep = 0.5;
         }
 
@@ -1536,7 +1565,6 @@
             const x = realX * scaleX;
             ctx.beginPath(); ctx.moveTo(x, 12); ctx.lineTo(x, 24); ctx.stroke(); 
             
-            // Muodostetaan aikanäyttö sekunteina tai minuutteina
             let timeStr = i + 's';
             if (step >= 30) {
                 const mins = Math.floor(i / 60);
@@ -1595,7 +1623,7 @@
                 document.getElementById('statusText').classList.add('busy');
 
                 availableFiles.clear();
-                for (let tData of savedState.tracks) {
+                const filePromises = savedState.tracks.map(async (tData) => {
                     if (!tData.isMidi) {
                         const cachedBlob = await dbGet("audio_" + tData.id);
                         if (cachedBlob) {
@@ -1603,7 +1631,8 @@
                             availableFiles.set(tData.fileName || tData.name, fileObj);
                         }
                     }
-                }
+                });
+                await Promise.all(filePromises);
                 
                 pendingProjectJSON = savedState;
                 await executeProjectLoad();
@@ -1616,16 +1645,13 @@
         }
     }
 
-    // --- RESET EVERYTHING ---
     async function resetEverything() {
         const confirmWarning = "VAROITUS!\n\nTämä toiminto poistaa kaikki nykyiset raidat, ryhmät, automaatiot ja asetukset pysyvästi sekä tyhjentää selaimen välimuistin.\n\nHaluatko varmasti jatkaa ja aloittaa puhtaalta pöydältä?";
         if (confirm(confirmWarning)) {
             stop();
             
-            // Clean browser IndexedDB cache
             await dbClear();
 
-            // Reset client application track state
             global.tracks.forEach(t => { t.DOM.remove(); window.scBusses.delete(t.id); }); global.tracks = []; 
             global.groups.forEach(g => { g.DOM.remove(); window.scBusses.delete(g.id); }); global.groups = [];
             masterTrackPool.clear(); masterGroupPool.clear(); 
@@ -1648,23 +1674,42 @@
             refreshTimeline();
             updateSelectionCount();
 
-            // Initialize a blank snapshot in database cache
             saveState();
             alert("Kaikki nollattu onnistuneesti!");
         }
     }
     global.resetEverything = resetEverything;
 
+    function batchToggleCollapse() {
+        const selectedGroups = global.groups.filter(g => g.isSelected);
+        if (selectedGroups.length > 0) {
+            const targetState = !selectedGroups[0].isCollapsed;
+            selectedGroups.forEach(g => {
+                g.isCollapsed = targetState;
+                g.updateVisuals();
+            });
+            global.saveState();
+        } else {
+            if (global.groups.length > 0) {
+                const targetState = !global.groups[0].isCollapsed;
+                global.groups.forEach(g => {
+                    g.isCollapsed = targetState;
+                    g.updateVisuals();
+                });
+                global.saveState();
+            }
+        }
+    }
+    global.batchToggleCollapse = batchToggleCollapse;
+
     setupLoopMarkers();
     updateRepeatUI();
     refreshTimeline();
-    loadCachedProject(); // Try restoring from persistent IndexedDB
+    loadCachedProject(); 
 
-    // Luodaan UI-nupit zoomeille yläpalkkiin
-    let zoomXKnob = createUIKnob('zoomXContainer', 'Zoom X', 1, 300, global.PIXELS_PER_SECOND, 1, v => Math.round(v) + 'x', val => changeZoomX(val));
-    let zoomYKnob = createUIKnob('zoomYContainer', 'Zoom Y', 30, 300, 110, 1, v => Math.round(v) + 'px', val => changeZoomY(val));
+    let zoomXKnob = createUIKnob('zoomXContainer', 'Zoom X', 1, 2000, global.PIXELS_PER_SECOND, 1, v => Math.round(v) + 'x', val => changeZoomX(val));
+    let zoomYKnob = createUIKnob('zoomYContainer', 'Zoom Y', 30, 600, 110, 1, v => Math.round(v) + 'px', val => changeZoomY(val));
 
-    // Paljastetaan globaalille window-oliolle HTML:n suorat viittaukset (onclick).
     global.toggleHotkeys = toggleHotkeys;
     global.undo = undo;
     global.redo = redo;
