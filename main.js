@@ -78,6 +78,86 @@
         global.rebuildMasterGraph();
     }
 
+    // --- INDEXEDDB CACHE UTILITIES ---
+    const DB_NAME = "WebAudioDAW_Cache";
+    const DB_VERSION = 1;
+    const STORE_NAME = "cache";
+
+    function getDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            };
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async function dbSet(key, value) {
+        try {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.put(value, key);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        } catch (err) {
+            console.error("IndexedDB set error:", err);
+        }
+    }
+
+    async function dbGet(key) {
+        try {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readonly");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        } catch (err) {
+            console.error("IndexedDB get error:", err);
+            return null;
+        }
+    }
+
+    async function dbDelete(key) {
+        try {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.delete(key);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        } catch (err) {
+            console.error("IndexedDB delete error:", err);
+        }
+    }
+
+    async function dbClear() {
+        try {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.clear();
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        } catch (err) {
+            console.error("IndexedDB clear error:", err);
+        }
+    }
+
     // UI Nuppien luontifunktio X ja Y zoomeille
     function createUIKnob(containerId, labelText, min, max, value, step, displayFormatter, onChangeCallback) {
         const container = document.getElementById(containerId);
@@ -250,6 +330,9 @@
                     const id = 't_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                     const t = new global.Track(id, file, buff, file.name); masterTrackPool.set(t.id, t); 
                     global.tracks.push(t); masterArea.appendChild(t.DOM); t.updateUIPlacements();
+                    
+                    // Tallenna audiotiedoston data välimuistiin
+                    await dbSet("audio_" + t.id, file);
                 } catch(err) { console.error("Tiedoston avaus epäonnistui", file.name); }
             }
             syncTracksArrayOrder(); updateBatchGroupSelect(); refreshTimeline(); saveState(); 
@@ -314,7 +397,17 @@
         };
     }
     
-    function saveState() { if(isRestoringState) return; undoStack.push(createSnapshot()); if(undoStack.length > 50) undoStack.shift(); redoStack = []; updateUndoRedoButtons(); }
+    function saveState() { 
+        if(isRestoringState) return; 
+        const snap = createSnapshot();
+        undoStack.push(snap); 
+        if(undoStack.length > 50) undoStack.shift(); 
+        redoStack = []; 
+        updateUndoRedoButtons(); 
+        
+        // Auto-save the JSON state to IndexedDB
+        dbSet("projectState", snap).catch(err => console.error("Auto-save failed:", err));
+    }
     global.saveState = saveState; 
 
     function restoreState(snap) {
@@ -348,7 +441,7 @@
 
         snap.tracks.forEach(tData => {
             let t = masterTrackPool.get(tData.id); 
-            if(!t) { if(tData.isMidi) { t = new global.MidiTrack(tData.id, tData.name); masterTrackPool.set(t.id, t); } else return; }
+            if(!t) { if(tData.isMidi) { t = new global.MidiTrack(tData.id || 'm_'+Date.now(), tData.name); masterTrackPool.set(t.id, t); } else return; }
             t.name = tData.name; t.fx = tData.fx; t.isMuted = tData.isMuted; t.isSelected = tData.isSelected; t.groupId = tData.groupId; t.sidechainSource = tData.sidechainSource || "";
             if(t.isMidi) { 
                 t.notes = tData.notes || [];
@@ -512,7 +605,7 @@
     function updateResourceUI() {
         const listAudio = document.getElementById('resListAudio'); const listJs = document.getElementById('resListJs'); listAudio.innerHTML = ''; listJs.innerHTML = ''; let allAudioFound = true;
         requiredAudio.forEach(fName => { const isFound = availableFiles.has(fName); if(!isFound) allAudioFound = false; listAudio.innerHTML += `<div class="res-item"><span>${fName}</span><span class="res-status ${isFound ? 'res-found' : 'res-missing'}">${isFound ? 'OK' : 'Puuttuu'}</span></div>`; });
-        requiredJS.forEach(fName => { const isOverridden = availableFiles.has(fName); listJs.innerHTML += `<div class="res-item"><span>${fName}</span><span class="res-status ${isOverridden ? 'res-found' : 'res-bundled'}">${isOverridden ? 'Korvattu uudemmalla' : 'Projektista'}</span></div>`; });
+        requiredJS.forEach(fName => { const isOverridden = availableFiles.has(fName); listJs.innerHTML += `<div class="res-item"><span>${fName}</span><span class="res-status ${isFound ? 'res-found' : 'res-bundled'}">${isOverridden ? 'Korvattu uudemmalla' : 'Projektista'}</span></div>`; });
         if (requiredAudio.size === 0) { listAudio.innerHTML += '<div>(Ei audioraitoja)</div>'; } if (requiredJS.size === 0) { listJs.innerHTML += '<div>(Ei JS-liitännäisiä)</div>'; }
         document.getElementById('btnConfirmLoad').disabled = !allAudioFound;
     }
@@ -631,7 +724,30 @@
     function toggleSelectAll() { const state = !global.tracks.every(t => t.isSelected); global.tracks.forEach(t => { t.isSelected = state; t.DOM.querySelector(`#cb-${t.id}`).checked = state; }); global.groups.forEach(g => { g.isSelected = state; g.DOM.querySelector(`#cb-${g.id}`).checked = state; }); updateSelectionCount(); }
     function batchAssignGroup(groupId) { const target = groupId === "ROOT" ? null : groupId; global.tracks.filter(t => t.isSelected).forEach(t => { t.groupId = target; (target ? document.getElementById(`group-tracks-${target}`) : masterArea).appendChild(t.DOM); }); syncTracksArrayOrder(); updateMuteVisuals(); saveState(); }
     function batchMuteToggle() { const sel = [...global.tracks.filter(t=>t.isSelected), ...global.groups.filter(g=>g.isSelected)]; const anyMuted = sel.some(x => x.isMuted); sel.forEach(x => { x.isMuted = !anyMuted; x.updateVisuals(); }); updateMuteVisuals(); saveState(); }
-    function batchDelete() { global.groups.filter(g=>g.isSelected).forEach(g => { global.tracks.filter(t => t.groupId === g.id && !t.isSelected).forEach(t => { t.groupId = null; masterArea.appendChild(t.DOM); }); g.customFX.forEach(fx => { if(typeof fx.destroy === 'function') fx.destroy(); }); g.DOM.remove(); window.scBusses.delete(g.id); }); global.tracks.filter(t=>t.isSelected).forEach(t => { t.customFX.forEach(fx => { if(typeof fx.destroy === 'function') fx.destroy(); }); t.DOM.remove(); window.scBusses.delete(t.id); }); syncTracksArrayOrder(); updateBatchGroupSelect(); updateSelectionCount(); refreshTimeline(); saveState(); }
+    
+    function batchDelete() { 
+        global.groups.filter(g=>g.isSelected).forEach(g => { 
+            global.tracks.filter(t => t.groupId === g.id && !t.isSelected).forEach(t => { 
+                t.groupId = null; 
+                masterArea.appendChild(t.DOM); 
+            }); 
+            g.customFX.forEach(fx => { if(typeof fx.destroy === 'function') fx.destroy(); }); 
+            g.DOM.remove(); 
+            window.scBusses.delete(g.id); 
+            dbDelete("audio_" + g.id).catch(()=>{}); // Poistetaan välimuistista
+        }); 
+        global.tracks.filter(t=>t.isSelected).forEach(t => { 
+            t.customFX.forEach(fx => { if(typeof fx.destroy === 'function') fx.destroy(); }); 
+            t.DOM.remove(); 
+            window.scBusses.delete(t.id); 
+            dbDelete("audio_" + t.id).catch(()=>{}); // Poistetaan välimuistista
+        }); 
+        syncTracksArrayOrder(); 
+        updateBatchGroupSelect(); 
+        updateSelectionCount(); 
+        refreshTimeline(); 
+        saveState(); 
+    }
     
     function batchMoveUp() { let moved=false; let items=Array.from(masterArea.children); for(let i=0;i<items.length;i++){const el=items[i]; const id=el.id.replace('track-','').replace('group-container-',''); const obj=masterTrackPool.get(id)||masterGroupPool.get(id); if(obj&&obj.isSelected){let prev=el.previousElementSibling; if(prev){const prevId=prev.id.replace('track-','').replace('group-container-',''); const prevObj=masterTrackPool.get(prevId)||masterGroupPool.get(prevId); if(!prevObj||!prevObj.isSelected){el.parentNode.insertBefore(el,prev);moved=true;}}}} if(moved){syncTracksArrayOrder();saveState();} }
     function batchMoveDown() { let moved=false; let items=Array.from(masterArea.children); for(let i=items.length-1;i>=0;i--){const el=items[i]; const id=el.id.replace('track-','').replace('group-container-',''); const obj=masterTrackPool.get(id)||masterGroupPool.get(id); if(obj&&obj.isSelected){let next=el.nextElementSibling; if(next){const nextId=next.id.replace('track-','').replace('group-container-',''); const nextObj=masterTrackPool.get(nextId)||masterGroupPool.get(nextId); if(!nextObj||!nextObj.isSelected){el.parentNode.insertBefore(next,el);moved=true;}}}} if(moved){syncTracksArrayOrder();saveState();} }
@@ -642,13 +758,19 @@
     function duplicateTrack(trackId) {
         const org = masterTrackPool.get(trackId); if(!org) return;
         let t;
+        const newId = 't_' + Date.now();
         if(org.isMidi) {
-            t = new global.MidiTrack('m_'+Date.now(), org.name+" (Kopio)"); t.notes = JSON.parse(JSON.stringify(org.notes)); t.sampler.samples = org.sampler.samples; t.sampler.baseNote = org.sampler.baseNote;
+            t = new global.MidiTrack(newId, org.name+" (Kopio)"); t.notes = JSON.parse(JSON.stringify(org.notes)); t.sampler.samples = org.sampler.samples; t.sampler.baseNote = org.sampler.baseNote;
             t.automation = JSON.parse(JSON.stringify(org.automation));
             t.startTimeOffset = org.startTimeOffset; t.trimStart = org.trimStart; t.trimEnd = org.trimEnd; t.contentDuration = org.contentDuration;
             t.midiInputSource = org.midiInputSource || ""; // Sidechain-tila
         } else {
-            t = new global.Track('t_'+Date.now(), {name:org.fileName}, org.buffer, org.name+" (Kopio)"); t.startTimeOffset=org.startTimeOffset; t.trimStart=org.trimStart; t.trimEnd=org.trimEnd; t.fadeIn=org.fadeIn; t.fadeOut=org.fadeOut;
+            t = new global.Track(newId, {name:org.fileName}, org.buffer, org.name+" (Kopio)"); t.startTimeOffset=org.startTimeOffset; t.trimStart=org.trimStart; t.trimEnd=org.trimEnd; t.fadeIn=org.fadeIn; t.fadeOut=org.fadeOut;
+            
+            // Kopioidaan audiotiedoston data välimuistiin
+            dbGet("audio_" + org.id).then(blob => {
+                if (blob) dbSet("audio_" + t.id, blob);
+            }).catch(e => console.error(e));
         }
         t.fx = JSON.parse(JSON.stringify(org.fx)); t.isMuted = org.isMuted; t.groupId = org.groupId; t.sidechainSource = org.sidechainSource;
         extractCustomFX(org.customFX).forEach(fxD => {
@@ -731,7 +853,7 @@
         const mpqn = Math.round(60000000 / BPM);
         tempoTrack.push(0x00, 0xFF, 0x51, 0x03, (mpqn >> 16) & 0xFF, (mpqn >> 8) & 0xFF, mpqn & 0xFF);
         tempoTrack.push(0x00, 0xFF, 0x2F, 0x00);
-        midiFile.push(...writeString("MTrk"));
+        midiFile.push(...writeString("MThd"));
         midiFile.push(...write32(tempoTrack.length));
         midiFile.push(...tempoTrack);
 
@@ -1063,11 +1185,16 @@
                 if (liveRecNodes) { try { liveRecNodes.outGain.disconnect(); } catch(e){} liveRecNodes = null; }
                 micStreamSource.disconnect(); micStreamSource = null; 
                 
-                const arrayBuffer = await (new Blob(recordedChunks)).arrayBuffer();
+                const recordedBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+                const arrayBuffer = await recordedBlob.arrayBuffer();
                 try { 
                     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer); 
                     const tName = `Äänitys ${new Date().toLocaleTimeString('fi-FI')}`;
-                    const t = new global.Track('t_'+Date.now(), {name: tName}, audioBuffer, tName); 
+                    const tId = 't_' + Date.now();
+                    
+                    // Convert raw audio to standard file structure
+                    const dummyFile = new File([recordedBlob], tName + ".wav", { type: recordedBlob.type });
+                    const t = new global.Track(tId, dummyFile, audioBuffer, tName); 
                     t.startTimeOffset = recordStartTime; 
                     
                     t.fx = JSON.parse(JSON.stringify(recFX));
@@ -1079,8 +1206,12 @@
                     
                     masterTrackPool.set(t.id, t); 
                     global.tracks.push(t); masterArea.appendChild(t.DOM); t.updateUIPlacements(); 
+                    
+                    // Tallenna äänitys IndexedDB cacheen
+                    await dbSet("audio_" + t.id, dummyFile);
+                    
                     syncTracksArrayOrder(); refreshTimeline(); saveState(); 
-                } catch(e) {}
+                } catch(e) { console.error("Recording save failed:", e); }
             }; 
             mediaRecorder.start(); isRecording = true; document.getElementById('recBtn').classList.add('recording'); if (!isPlaying) play();
         } catch(err) { alert("Mikrofonilupa evätty."); }
@@ -1267,7 +1398,7 @@
                     setTimeout(() => {
                         if (!isPlaying) return;
                         
-                        // UUSI LISÄYS: Varmistetaan FX-reititys aina ennen viestin käsittelyä!
+                        // Varmistetaan FX-reititys aina ennen viestin käsittelyä
                         if (typeof t.patchFxChain === 'function') t.patchFxChain();
 
                         let midiHandled = false;
@@ -1455,10 +1586,79 @@
     
     function setFullExportRange() { document.getElementById('exportStart').value = 0; document.getElementById('exportEnd').value = getProjectDuration().toFixed(2); }
     
+    // --- AUTO-RESTORE FROM CACHE ---
+    async function loadCachedProject() {
+        try {
+            const savedState = await dbGet("projectState");
+            if (savedState) {
+                document.getElementById('statusText').innerText = "Palautetaan..."; 
+                document.getElementById('statusText').classList.add('busy');
+
+                availableFiles.clear();
+                for (let tData of savedState.tracks) {
+                    if (!tData.isMidi) {
+                        const cachedBlob = await dbGet("audio_" + tData.id);
+                        if (cachedBlob) {
+                            const fileObj = new File([cachedBlob], tData.fileName || tData.name, { type: cachedBlob.type });
+                            availableFiles.set(tData.fileName || tData.name, fileObj);
+                        }
+                    }
+                }
+                
+                pendingProjectJSON = savedState;
+                await executeProjectLoad();
+            } else {
+                saveState();
+            }
+        } catch (err) {
+            console.error("Välimuistin palautus epäonnistui:", err);
+            saveState();
+        }
+    }
+
+    // --- RESET EVERYTHING ---
+    async function resetEverything() {
+        const confirmWarning = "VAROITUS!\n\nTämä toiminto poistaa kaikki nykyiset raidat, ryhmät, automaatiot ja asetukset pysyvästi sekä tyhjentää selaimen välimuistin.\n\nHaluatko varmasti jatkaa ja aloittaa puhtaalta pöydältä?";
+        if (confirm(confirmWarning)) {
+            stop();
+            
+            // Clean browser IndexedDB cache
+            await dbClear();
+
+            // Reset client application track state
+            global.tracks.forEach(t => { t.DOM.remove(); window.scBusses.delete(t.id); }); global.tracks = []; 
+            global.groups.forEach(g => { g.DOM.remove(); window.scBusses.delete(g.id); }); global.groups = [];
+            masterTrackPool.clear(); masterGroupPool.clear(); 
+            undoStack = []; redoStack = []; updateUndoRedoButtons();
+            markers = [];
+            
+            global.masterFX = global.createDefaultFX(); 
+            global.masterCustomFX.forEach(fx => { if(typeof fx.destroy === 'function') fx.destroy(); }); global.masterCustomFX = []; masterCustomFxDom.innerHTML = '';
+            if (typeof global.rebuildMasterGraph === 'function') global.rebuildMasterGraph();
+
+            global.bpm = 120; window.bpm = global.bpm;
+            document.getElementById('bpmInput').value = 120;
+            updateGrid();
+
+            isRepeatEnabled = false;
+            repeatStart = 0;
+            repeatEnd = 4;
+            updateRepeatUI();
+
+            refreshTimeline();
+            updateSelectionCount();
+
+            // Initialize a blank snapshot in database cache
+            saveState();
+            alert("Kaikki nollattu onnistuneesti!");
+        }
+    }
+    global.resetEverything = resetEverything;
+
     setupLoopMarkers();
     updateRepeatUI();
-    saveState();
     refreshTimeline();
+    loadCachedProject(); // Try restoring from persistent IndexedDB
 
     // Luodaan UI-nupit zoomeille yläpalkkiin
     let zoomXKnob = createUIKnob('zoomXContainer', 'Zoom X', 1, 300, global.PIXELS_PER_SECOND, 1, v => Math.round(v) + 'x', val => changeZoomX(val));
