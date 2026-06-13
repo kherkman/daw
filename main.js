@@ -787,7 +787,7 @@
     function batchMoveUp() { let moved=false; let items=Array.from(masterArea.children); for(let i=0;i<items.length;i++){const el=items[i]; const id=el.id.replace('track-','').replace('group-container-',''); const obj=masterTrackPool.get(id)||masterGroupPool.get(id); if(obj&&obj.isSelected){let prev=el.previousElementSibling; if(prev){const prevId=prev.id.replace('track-','').replace('group-container-',''); const prevObj=masterTrackPool.get(prevId)||masterGroupPool.get(prevId); if(!prevObj||!prevObj.isSelected){el.parentNode.insertBefore(el,prev);moved=true;}}}} if(moved){syncTracksArrayOrder();saveState();} }
     function batchMoveDown() { let moved=false; let items=Array.from(masterArea.children); for(let i=items.length-1;i>=0;i--){const el=items[i]; const id=el.id.replace('track-','').replace('group-container-',''); const obj=masterTrackPool.get(id)||masterGroupPool.get(id); if(obj&&obj.isSelected){let next=el.nextElementSibling; if(next){const nextId=next.id.replace('track-','').replace('group-container-',''); const nextObj=masterTrackPool.get(nextId)||masterGroupPool.get(nextId); if(!nextObj||!nextObj.isSelected){el.parentNode.insertBefore(next,el);moved=true;}}}} if(moved){syncTracksArrayOrder();saveState();} }
     
-    function createGroup() { const id = 'g_' + Date.now(); const g = new global.TrackGroup(id, 'Ryhmä '+(global.groups.length+1)); masterGroupPool.set(g.id, g); global.groups.push(g); masterArea.appendChild(g.DOM); updateBatchGroupSelect(); syncTracksArrayOrder(); saveState(); }
+    function createGroup() { const id = 'g_' + Date.now(); const g = new global.TrackGroup(id, 'Group '+(global.groups.length+1)); masterGroupPool.set(g.id, g); global.groups.push(g); masterArea.appendChild(g.DOM); updateBatchGroupSelect(); syncTracksArrayOrder(); saveState(); }
     function createMidiTrack() { const id = 'm_' + Date.now(); const t = new global.MidiTrack(id, "MIDI " + (global.tracks.filter(tr=>tr.isMidi).length + 1)); masterTrackPool.set(t.id, t); global.tracks.push(t); masterArea.appendChild(t.DOM); syncTracksArrayOrder(); refreshTimeline(); saveState(); t.drawNotes(); }
     
     function duplicateTrack(trackId) {
@@ -816,7 +816,7 @@
         global.tracks.push(t); t.updateUIPlacements(); t.updateVisuals(); syncTracksArrayOrder(); refreshTimeline(); saveState();
     }
 
-    function updateBatchGroupSelect() { const sel = document.getElementById('batchGroupSelect'); sel.innerHTML = '<option value="">-- Siirrä ryhmään --</option><option value="ROOT">Poista ryhmästä (Juuri)</option>'; global.groups.forEach(g => sel.innerHTML += `<option value="${g.id}">${g.name}</option>`); }
+    function updateBatchGroupSelect() { const sel = document.getElementById('batchGroupSelect'); sel.innerHTML = '<option value="">Move to Group</option><option value="ROOT">Move to Root</option>'; global.groups.forEach(g => sel.innerHTML += `<option value="${g.id}">${g.name}</option>`); }
     
     function syncTracksArrayOrder() { 
         const nt = [], ng = []; 
@@ -1600,10 +1600,10 @@
     function openEQ(id, isGroup = false) {
         if(isGroup) { 
             const g = masterGroupPool.get(id); if(!g) return; 
-            window.FXMenu.build('trackFxContent', g, g.fx, 'Ryhmä: ' + g.name, () => { if (g.liveNodes && !g.isMuted) { g.liveNodes.outGain.gain.setValueAtTime(g.fx.vol, audioCtx.currentTime); g.liveNodes.panner.pan.setValueAtTime(g.fx.pan, audioCtx.currentTime); } if (isPlaying) play(); }, { customArr: g.customFX, customDom: g.customFxDom, globalTracks: global.tracks, globalGroups: global.groups }); 
+            window.FXMenu.build('trackFxContent', g, g.fx, 'Group: ' + g.name, () => { if (g.liveNodes && !g.isMuted) { g.liveNodes.outGain.gain.setValueAtTime(g.fx.vol, audioCtx.currentTime); g.liveNodes.panner.pan.setValueAtTime(g.fx.pan, audioCtx.currentTime); } if (isPlaying) play(); }, { customArr: g.customFX, customDom: g.customFxDom, globalTracks: global.tracks, globalGroups: global.groups }); 
         } else { 
             const t = masterTrackPool.get(id); if(!t) return; 
-            window.FXMenu.build('trackFxContent', t, t.fx, 'Raita: ' + t.name, () => { if (t.liveNodes && !t.isMuted) { t.liveNodes.outGain.gain.setValueAtTime(t.fx.vol, audioCtx.currentTime); t.liveNodes.panner.pan.setValueAtTime(t.fx.pan, audioCtx.currentTime); } t.updateUIPlacements(); if (isPlaying) play(); }, { customArr: t.customFX, customDom: t.customFxDom, globalTracks: global.tracks, globalGroups: global.groups }); 
+            window.FXMenu.build('trackFxContent', t, t.fx, 'Track: ' + t.name, () => { if (t.liveNodes && !t.isMuted) { t.liveNodes.outGain.gain.setValueAtTime(t.fx.vol, audioCtx.currentTime); t.liveNodes.panner.pan.setValueAtTime(t.fx.pan, audioCtx.currentTime); } t.updateUIPlacements(); if (isPlaying) play(); }, { customArr: t.customFX, customDom: t.customFxDom, globalTracks: global.tracks, globalGroups: global.groups }); 
         }
         document.getElementById('eqModal').classList.add('active');
     }
